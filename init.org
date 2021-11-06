@@ -1,4 +1,4 @@
-#+title JS's emacs config
+#+TITLE: JS's emacs config
 #+PROPERTY: header-args :tangle ./init.el
 
 * General configs
@@ -184,11 +184,9 @@ Taking pdf notes org-mode that sync to inside the document.
   (use-package org-noter)
 #+end_src
 
+
 * Org mode
 ** General setup
-:PROPERTIES:
-:NOTER_DOCUMENT: ../Desktop/dnd_essentials_rulebook.pdf
-:END:
 #+begin_src emacs-lisp
 
   (defun efs/org-mode-setup ()
@@ -329,4 +327,5 @@ Taking pdf notes org-mode that sync to inside the document.
   (add-hook 'org-mode-hook (lambda () (add-hook 'after-save-hook #'efs/org-babel-tangle-config)))
 
 #+end_src
+
 
