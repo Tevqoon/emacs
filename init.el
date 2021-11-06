@@ -3,7 +3,7 @@
 (setq frame-resize-pixelwise t)
 (tool-bar-mode -1)          ; Disable the toolbar
 (tooltip-mode -1)           ; Disable tooltips
-;;(set-fringe-mode 10)        ; Give some breathing room
+(set-fringe-mode 5)        ; Give some breathing room
 
 (menu-bar-mode -1)            ; Disable the menu
 
@@ -11,12 +11,12 @@
 
 (column-number-mode) ; Add column numbers to modeline
 (global-display-line-numbers-mode t) ; Add line numbers
- 
+
 ;;Disable line numbers for some modes
 (dolist (mode '(org-mode hook
-			 term-mode-hook
-			 shell-mode-hook
-		eshell-mode-hook))
+                         term-mode-hook
+                         shell-mode-hook
+                         eshell-mode-hook))
   (add-hook mode (lambda () (display-line-numbers-mode 0))))
 
 (set-face-attribute 'default nil :height 140)
@@ -25,16 +25,12 @@
 (setq ns-alternate-modifier 'meta)
 (setq ns-right-alternate-modifier 'none)
 
-;; (use-package spacemacs-theme
-;;   :defer t
-;;   :init (load-theme 'spacemacs-light t))
+;; Make ESC quit
+(global-set-key (kbd "<escape>") 'keyboard-escape-quit)
 
 (use-package doom-themes
   :defer t
   :init (load-theme 'doom-solarized-light t))
-
-;; Make ESC quit prompts
-(global-set-key (kbd "<escape>") 'keyboard-escape-quit)
 
 ;; Initialize package sources
 (require 'package)
@@ -47,20 +43,13 @@
 (unless package-archive-contents
   (package-refresh-contents))
 
-;; ;; Initialize use-package on non-Linux platforms;; Add a hydra for changing text size, cool example
-;; (defhydra hydra-text-scale (:timeout 4)
-;;   "scale text"
-;;   ("j" text-scale-increase "in")
-;;   ("k" text-scale-decrease "out")
-;;   ("f" nil "finished" :exit t))
-;; ;; Add such a hydra to the general modifier stuff
-;; (comfy-space
-;;   "ts" '(hydra-text-scale/body :which-key "scale text"))
-;; (unless (package-installed-p 'use-package)
-;;    (package-install 'use-package))
-
 (require 'use-package)
 (setq use-package-always-ensure t)
+
+;; Fix emacs $PATH to correspond with shell  
+
+(use-package exec-path-from-shell)
+(exec-path-from-shell-initialize)
 
 (use-package swiper)
 (use-package counsel)
@@ -68,7 +57,7 @@
   :diminish
   :bind (("C-s" . swiper)
          :map ivy-minibuffer-map
-         ("TAB" . ivy-alt-done)	
+         ("TAB" . ivy-alt-done)
          ("C-l" . ivy-alt-done)
          ("C-j" . ivy-next-line)
          ("C-k" . ivy-previous-line)
@@ -79,7 +68,6 @@
          :map ivy-reverse-i-search-map
          ("C-k" . ivy-previous-line)
          ("C-d" . ivy-reverse-i-search-kill))
-  :demand
   :config
   (ivy-mode 1))
 
@@ -105,61 +93,7 @@
   :init (which-key-mode)
   :diminish which-key-mode
   :config
-  (setq which-key-idle-delay 0.3))
-
-;; Example of how to use general
-;;(general-define-key
-;; "M-C-j" 'counsel-switch-buffer)
-
-(use-package general
-  :config
-  (general-create-definer comfy-space
-    :keymaps '(normal insert visual emacs)
-    :prefix "SPC"
-    :global-prefix "C-SPC")
-
-  ;; We can thusly set custom shortcuts on the space layer
-  (comfy-space
-    "t"  '(:ignore t :which-key "toggles")
-    "tt" '(counsel-load-theme :which-key "choose theme")))
-
-;;Evil mode stuff, let's leave it on for now
-(use-package evil
-  :init
-  (setq evil-want-integration t)
-  (setq evil-want-keybinding nil)
-  (setq evil-want-C-u-scroll t)
-  (setq evil-want-C-i-jump nil)
-  :config
-  (evil-mode 1)
-  (define-key evil-insert-state-map (kbd "C-g") 'evil-normal-state)
-;; C-h is backspace in insert mode
-  (define-key evil-insert-state-map (kbd "C-h") 'evil-delete-backward-char-and-join)
-
-
-;; Use visual line motions even outside of visual-line-mode buffers
-  (evil-global-set-key 'motion "j" 'evil-next-visual-line)
-  (evil-global-set-key 'motion "k" 'evil-previous-visual-line)
-
-  (evil-set-initial-state 'messages-buffer-mode 'normal)
-  (evil-set-initial-state 'dashboard-mode 'normal))
-
-(use-package evil-collection
-  :after evil
-  :config
-  (evil-collection-init))
-
-(use-package hydra)
-
-;; ;; Add a hydra for changing text size, cool example
-;; (defhydra hydra-text-scale (:timeout 4)
-;;   "scale text"
-;;   ("j" text-scale-increase "in")
-;;   ("k" text-scale-decrease "out")
-;;   ("f" nil "finished" :exit t))
-;; ;; Add such a hydra to the general modifier stuff
-;; (comfy-space
-;;   "ts" '(hydra-text-scale/body :which-key "scale text"))
+  (setq which-key-idle-delay 0))
 
 (use-package projectile
   :diminish projectile-mode
@@ -183,91 +117,115 @@
 (use-package forge)
 (setq auth-sources '("~/.authinfo"))
 
-;; ---------------------------------------------------------
+(use-package tablist)
+(use-package pdf-tools)
+(pdf-tools-install)
 
-;; Set command jk to jump around paragraphs
-(global-set-key (kbd "s-j") 'forward-paragraph)
-(global-set-key (kbd "s-k") 'backward-paragraph)
+(use-package org-noter)
 
+(defun efs/org-mode-setup ()
+  (org-indent-mode)
+  (visual-line-mode 1))
 
+(use-package org
+  :hook (org-mode . efs/org-mode-setup)
+  :config
+  (setq org-ellipsis " ▾")
+  (setq org-agenda-files
+        '("~/Documents/repos/org/agenda")))
 
-(custom-set-variables
- ;; custom-set-variables was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- '(compilation-message-face 'default)
- '(counsel-mode t)
- '(cua-global-mark-cursor-color "#2aa198")
- '(cua-normal-cursor-color "#657b83")
- '(cua-overwrite-cursor-color "#b58900")
- '(cua-read-only-cursor-color "#859900")
- '(custom-safe-themes
-   '("fa2b58bb98b62c3b8cf3b6f02f058ef7827a8e497125de0254f56e373abee088" default))
- '(exwm-floating-border-color "#D0D0E3")
- '(fci-rule-color "#4E4E4E")
- '(highlight-changes-colors '("#d33682" "#6c71c4"))
- '(highlight-symbol-colors
-   '("#efe5da4aafb2" "#cfc5e1add08c" "#fe53c9e7b34f" "#dbb6d3c3dcf4" "#e183dee1b053" "#f944cc6dae48" "#d360dac5e06a"))
- '(highlight-symbol-foreground-color "#586e75")
- '(highlight-tail-colors
-   ((("#dce6e0" "color-22" "green")
-     . 0)
-    (("#dce8ed" "color-30" "cyan")
-     . 20)))
- '(hl-bg-colors
-   '("#e1af4b" "#fb7640" "#ff6849" "#ff699e" "#8d85e7" "#74adf5" "#6ccec0" "#b3c34d"))
- '(hl-fg-colors
-   '("#fdf6e3" "#fdf6e3" "#fdf6e3" "#fdf6e3" "#fdf6e3" "#fdf6e3" "#fdf6e3" "#fdf6e3"))
- '(hl-paren-colors '("#2aa198" "#b58900" "#268bd2" "#6c71c4" "#859900"))
- '(jdee-db-active-breakpoint-face-colors (cons "#D0D0E3" "#009B7C"))
- '(jdee-db-requested-breakpoint-face-colors (cons "#D0D0E3" "#005F00"))
- '(jdee-db-spec-breakpoint-face-colors (cons "#D0D0E3" "#4E4E4E"))
- '(lsp-ui-doc-border "#586e75")
- '(nrepl-message-colors
-   '("#dc322f" "#cb4b16" "#b58900" "#5b7300" "#b3c34d" "#0061a8" "#2aa198" "#d33682" "#6c71c4"))
- '(objed-cursor-color "#D70000")
- '(package-selected-packages
-   '(forge solarized solarized-theme evil-magit magit counsel-projectile projectile hydra evil-collection multiple-cursors evil general spacemacs-theme doom-themes ivy-rich which-key rainbow-delimiters smooth-scroll swiper doom-modeline ivy command-log-mode use-package))
- '(pos-tip-background-color "#eee8d5")
- '(pos-tip-foreground-color "#586e75")
- '(rustic-ansi-faces
-   ["#F5F5F9" "#D70000" "#005F00" "#AF8700" "#1F55A0" "#AF005F" "#007687" "#0F1019"])
- '(smartrep-mode-line-active-bg (solarized-color-blend "#859900" "#eee8d5" 0.2))
- '(term-default-bg-color "#fdf6e3")
- '(term-default-fg-color "#657b83")
- '(vc-annotate-background "#F5F5F9")
- '(vc-annotate-background-mode nil)
- '(vc-annotate-color-map
-   (list
-    (cons 20 "#005F00")
-    (cons 40 "#3a6c00")
-    (cons 60 "#747900")
-    (cons 80 "#AF8700")
-    (cons 100 "#bc7900")
-    (cons 120 "#c96c00")
-    (cons 140 "#D75F00")
-    (cons 160 "#c93f1f")
-    (cons 180 "#bc1f3f")
-    (cons 200 "#AF005F")
-    (cons 220 "#bc003f")
-    (cons 240 "#c9001f")
-    (cons 260 "#D70000")
-    (cons 280 "#b41313")
-    (cons 300 "#922727")
-    (cons 320 "#703a3a")
-    (cons 340 "#4E4E4E")
-    (cons 360 "#4E4E4E")))
- '(vc-annotate-very-old-color nil)
- '(weechat-color-list
-   '(unspecified "#fdf6e3" "#eee8d5" "#a7020a" "#dc322f" "#5b7300" "#859900" "#866300" "#b58900" "#0061a8" "#268bd2" "#a00559" "#d33682" "#007d76" "#2aa198" "#657b83" "#839496"))
- '(xterm-color-names
-   ["#eee8d5" "#dc322f" "#859900" "#b58900" "#268bd2" "#d33682" "#2aa198" "#073642"])
- '(xterm-color-names-bright
-   ["#fdf6e3" "#cb4b16" "#93a1a1" "#839496" "#657b83" "#6c71c4" "#586e75" "#002b36"]))
-(custom-set-faces
- ;; custom-set-faces was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- )
+(use-package org-bullets
+  :after org
+  :hook (org-mode . org-bullets-mode)
+  :custom
+  (org-bullets-bullet-list '("◉" "○" "●" "○" "●" "○" "●")))
+
+(defun efs/org-mode-visual-fill ()
+  (setq visual-fill-column-width 100
+        visual-fill-column-center-text t)
+  (visual-fill-column-mode 1))
+
+(use-package visual-fill-column
+  :hook (org-mode . efs/org-mode-visual-fill))
+
+(setq org-todo-keywords
+      '((sequence "TODO(t)" "NEXT(n)" "|" "DONE(d!)")))
+
+(setq org-refile-targets
+      '(("~/Documents/repos/org/Archive.org" :maxlevel . 1)
+        ("~/Documents/repos/org/agenda/Tasks.org" :maxlevel . 1)))
+
+;; Save org buffers after refiling
+(advice-add 'org-refile :after 'org-save-all-org-buffers)
+
+(setq org-agenda-start-with-log-mode t)
+(setq org-log-done 'time)
+(setq org-log-into-drawer t)
+
+(setq org-agenda-custom-commands
+      '(("d" "Dashboard"
+         ((agenda "" ((org-deadline-warning-days 7)))
+          (todo "NEXT"
+                ((org-agenda-overriding-header "Next Tasks")))
+          (tags-todo "agenda/ACTIVE" ((org-agenda-overriding-header "Active Projects")))))
+
+        ("n" "Next Tasks"
+         ((todo "NEXT"
+                ((org-agenda-overriding-header "Next Tasks")))))))
+
+(use-package org-fragtog
+  :init (add-hook 'org-mode-hook 'org-fragtog-mode))
+
+(setq org-preview-latex-process-alist
+      '(
+       (dvipng
+        :programs ("latex" "dvipng")
+        :description "dvi > png"
+        :message "you need to install the programs: latex and dvipng."
+        :image-input-type "dvi"
+        :image-output-type "png"
+        :image-size-adjust (1.0 . 1.0)
+        :latex-compiler ("latex -interaction nonstopmode -output-directory %o %f")
+        :image-converter ("dvipng -D %D -T tight -o %O %f"))))
+
+(setq org-format-latex-options (plist-put org-format-latex-options :scale 2.0))
+
+(use-package anki-editor)
+
+(setq org-capture-templates
+      `(("t" "Tasks / Projects")
+        ("tt" "Task" entry (file+olp "~/Documents/repos/org/agenda/Tasks.org" "Inbox")
+         "* TODO %?\n  %U\n  %a\n  %i" :empty-lines 1)
+
+        ("j" "Journal Entries")
+        ("jj" "Journal" entry
+         (file+olp+datetree "~/Documents/repos/org/Journal.org")
+         "\n* %<%I:%M %p> - Journal :journal:\n\n%?\n\n"
+         ;; ,(dw/read-file-as-string "~/Notes/Templates/Daily.org")
+         :clock-in :clock-resume
+         :empty-lines 1)))
+
+(define-key global-map (kbd "C-c j")
+  (lambda () (interactive) (org-capture nil "jj")))
+
+(org-babel-do-load-languages
+ 'org-babel-load-languages
+ '((emacs-lisp . t)
+   (python . t)))
+
+(setq org-confirm-babel-evaluate nil)
+(require 'org-tempo)
+
+(add-to-list 'org-structure-template-alist '("sh" . "src shell"))
+(add-to-list 'org-structure-template-alist '("el" . "src emacs-lisp"))
+(add-to-list 'org-structure-template-alist '("py" . "src python"))
+
+;; Automatically tangle our Emacs.org config file when we save it
+(defun efs/org-babel-tangle-config ()
+  (when (string-equal (buffer-file-name)
+                      (expand-file-name "~/.emacs.d/init.org"))
+    ;; Dynamic scoping to the rescue
+    (let ((org-confirm-babel-evaluate nil))
+      (org-babel-tangle))))
+
+(add-hook 'org-mode-hook (lambda () (add-hook 'after-save-hook #'efs/org-babel-tangle-config)))
