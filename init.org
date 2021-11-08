@@ -1,5 +1,5 @@
 #+TITLE: JS's emacs config
-#+PROPERTY: header-args :tangle ./init.el
+#+PROPERTY: header-args :tangle ./init.el :results value silent
 
 * General configs
 ** Initialization
@@ -52,9 +52,10 @@
   ;; Initialize package sources
   (require 'package)
 
-  (setq package-archives '(("melpa" . "https://melpa.org/packages/")
-                           ("org"   . "https://orgmode.org/elpa/")
-                           ("elpa"  . "https://elpa.gnu.org/packages/")))
+  (add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/") t)
+  (add-to-list 'package-archives '("org"   . "https://orgmode.org/elpa/") t)
+  (add-to-list 'package-archives '("elpa"   . "https://elpa.gnu.org/packages/") t)
+  (add-to-list 'package-archives '("elpa"   . "http://elpa.gnu.org/packages/") t)
 
   (package-initialize)
   (unless package-archive-contents
@@ -79,17 +80,7 @@
     :diminish
     :bind (("C-s" . swiper)
            :map ivy-minibuffer-map
-           ("TAB" . ivy-alt-done)
-           ("C-l" . ivy-alt-done)
-           ("C-j" . ivy-next-line)
-           ("C-k" . ivy-previous-line)
-           :map ivy-switch-buffer-map
-           ("C-k" . ivy-previous-line)
-           ("C-l" . ivy-done)
-           ("C-d" . ivy-switch-buffer-kill)
-           :map ivy-reverse-i-search-map
-           ("C-k" . ivy-previous-line)
-           ("C-d" . ivy-reverse-i-search-kill))
+           ("TAB" . ivy-alt-done))
     :config
     (ivy-mode 1))
 
@@ -111,6 +102,26 @@
     :init (doom-modeline-mode 1)
     :custom ((doom-modeline-height 12)))
 
+#+end_src
+
+** Misc
+*** ESC ESC ESC deradicalization
+Replace the =ESC ESC ESC= command with one which does not close all other windows.
+#+begin_src emacs-lisp
+
+  (require 'cl-lib)
+  (defun my-keyboard-escape-quit (fun &rest args)
+    (cl-letf (((symbol-function 'one-window-p) (lambda (&rest _) t)))
+      (apply fun args)))
+  (advice-add 'keyboard-escape-quit :around #'my-keyboard-escape-quit)
+
+#+end_src
+
+*** page-break-lines
+A library which displays form feed characters as horizontal rules. [[https://github.com/purcell/page-break-lines][Link]].
+#+begin_src emacs-lisp
+  (use-package page-break-lines)
+  (global-page-break-lines-mode)
 #+end_src
 
 
@@ -176,12 +187,6 @@ A better pdf reader for emacs, here specifically for use with org-noter
   (use-package pdf-tools)
   (pdf-tools-install)
 
-#+end_src
-
-** Org-noter
-Taking pdf notes org-mode that sync to inside the document.
-#+begin_src emacs-lisp
-  (use-package org-noter)
 #+end_src
 
 
@@ -266,15 +271,21 @@ Taking pdf notes org-mode that sync to inside the document.
   (setq org-format-latex-options (plist-put org-format-latex-options :scale 2.0))
 #+end_src
 
+$3 + 2x = 3x^2$
+
 ** Minor extensions
-*** Anki-editor
+*** TODO Anki-editor
 #+begin_src emacs-lisp
-
   (use-package anki-editor)
-
 #+end_src
 
-** Capture templates
+*** TODO Org-noter
+Taking pdf notes org-mode that sync to inside the document.
+#+begin_src emacs-lisp
+  (use-package org-noter)
+#+end_src
+
+** TODO Capture templates
 #+begin_src emacs-lisp
 
   (setq org-capture-templates
@@ -328,4 +339,209 @@ Taking pdf notes org-mode that sync to inside the document.
 
 #+end_src
 
+** TODO Org-roam
+*** 
 
+
+* Programming stuff
+** Languages
+*** Python
+#+begin_src emacs-lisp
+
+  (use-package python-mode
+    :ensure t
+    ;;:hook (python-mode . eglot)
+    ;; :hook (python-mode . lsp)
+    :custom
+    ;; NOTE: Set these if Python 3 is called "python3" on your system!
+    (python-shell-interpreter "python3"))
+
+    ;; Leaving the debugging stuff out for now.
+    ;; (dap-python-executable "python3")
+    ;; (dap-python-debugger 'debugpy)
+    ;; :config
+    ;; (require 'dap-python))
+
+#+end_src
+
+*** TODO LaTeX
+Have to review all of the packages and make sure everything plays nice, and configure various interactions etc, have to see how much LSP will do by itself.
+**** TODO AUCTeX
+#+begin_src emacs-lisp :tangle no
+
+  (use-package latex
+    :ensure auctex
+    :hook ((LaTeX-mode . prettify-symbols-mode)))
+
+  ;; Use pdf-tools to open PDF files
+  (setq TeX-view-program-selection '((output-pdf "PDF Tools"))
+        TeX-source-correlate-start-server t)
+
+  ;; Update PDF buffers after successful LaTeX runs
+  (add-hook 'TeX-after-compilation-finished-functions
+             #'TeX-revert-document-buffer)
+
+#+end_src
+**** TODO Company-AUC
+#+begin_src emacs-lisp :tangle no
+
+  (use-package company-auctex
+    :init (company-auctex-init))
+
+#+end_src
+**** Company-math
+Allows inserting of unicode symbols in text buffers using LaTeX syntax. Actually seems to work like one would expect. Who'd've thought. From [[https://github.com/vspinu/company-math][here]].
+#+begin_src emacs-lisp
+
+  (use-package company-math)
+  ;; global activation of the unicode symbol completion 
+  (add-to-list 'company-backends 'company-math-symbols-unicode)
+
+#+end_src
+**** TODO CDLaTex
+#+begin_src emacs-lisp :tangle no
+
+  (use-package cdlatex
+    :ensure t
+    :hook (LaTeX-mode . turn-on-cdlatex)
+    :bind (:map cdlatex-mode-map 
+                ("<tab>" . cdlatex-tab)))
+
+
+#+end_src
+
+**** TODO LazyTab
+Currently not working. Might be better just to get the actual package [[https://github.com/karthink/lazytab][Lazytab]] working.
+#+begin_src emacs-lisp :tangle no
+
+  ;; Array/tabular input with org-tables and cdlatex 
+  (use-package org-table
+    :after cdlatex
+    :bind (:map orgtbl-mode-map
+                ("<tab>" . lazytab-org-table-next-field-maybe)
+                ("TAB" . lazytab-org-table-next-field-maybe))
+    :init
+    (add-hook 'cdlatex-tab-hook 'lazytab-cdlatex-or-orgtbl-next-field 90)
+    ;; Tabular environments using cdlatex
+    (add-to-list 'cdlatex-command-alist '("smat" "Insert smallmatrix env"
+                                          "\\left( \\begin{smallmatrix} ? \\end{smallmatrix} \\right)"
+                                          lazytab-position-cursor-and-edit
+                                          nil nil t))
+    (add-to-list 'cdlatex-command-alist '("bmat" "Insert bmatrix env"
+                                          "\\begin{bmatrix} ? \\end{bmatrix}"
+                                          lazytab-position-cursor-and-edit
+                                          nil nil t))
+    (add-to-list 'cdlatex-command-alist '("pmat" "Insert pmatrix env"
+                                          "\\begin{pmatrix} ? \\end{pmatrix}"
+                                          lazytab-position-cursor-and-edit
+                                          nil nil t))
+    (add-to-list 'cdlatex-command-alist '("tbl" "Insert table"
+                                          "\\begin{table}\n\\centering ? \\caption{}\n\\end{table}\n"
+                                         lazytab-position-cursor-and-edit
+                                         nil t nil))
+    :config
+    ;; Tab handling in org tables
+    (defun lazytab-position-cursor-and-edit ()
+      ;; (if (search-backward "\?" (- (point) 100) t)
+      ;;     (delete-char 1))
+      (cdlatex-position-cursor)
+      (lazytab-orgtbl-edit))
+
+    (defun lazytab-orgtbl-edit ()
+      (advice-add 'orgtbl-ctrl-c-ctrl-c :after #'lazytab-orgtbl-replace)
+      (orgtbl-mode 1)
+      (open-line 1)
+      (insert "\n|"))
+
+    (defun lazytab-orgtbl-replace (_)
+      (interactive "P")
+      (unless (org-at-table-p) (user-error "Not at a table"))
+      (let* ((table (org-table-to-lisp))
+             params
+             (replacement-table
+              (if (texmathp)
+                  (lazytab-orgtbl-to-amsmath table params)
+                (orgtbl-to-latex table params))))
+        (kill-region (org-table-begin) (org-table-end))
+        (open-line 1)
+        (push-mark)
+        (insert replacement-table)
+        (align-regexp (region-beginning) (region-end) "\\([:space:]*\\)& ")
+        (orgtbl-mode -1)
+        (advice-remove 'orgtbl-ctrl-c-ctrl-c #'lazytab-orgtbl-replace)))
+
+    (defun lazytab-orgtbl-to-amsmath (table params)
+      (orgtbl-to-generic
+       table
+       (org-combine-plists
+        '(:splice t
+                  :lstart ""
+                  :lend " \\\\"
+                  :sep " & "
+                  :hline nil
+                  :llend "")
+        params)))
+
+    (defun lazytab-cdlatex-or-orgtbl-next-field ()
+      (when (and (bound-and-true-p orgtbl-mode)
+                 (org-table-p)
+                 (looking-at "[[:space:]]*\\(?:|\\|$\\)")
+                 (let ((s (thing-at-point 'sexp)))
+                   (not (and s (assoc s cdlatex-command-alist-comb)))))
+        (call-interactively #'org-table-next-field)
+        t))
+
+    (defun lazytab-org-table-next-field-maybe ()
+      (interactive)
+      (if (bound-and-true-p cdlatex-mode)
+          (cdlatex-tab)
+        (org-table-next-field))))
+
+#+end_src
+** Flycheck
+Syntax checking, seems to just work, so to speak.
+#+begin_src emacs-lisp
+
+  (use-package flycheck)
+  (global-flycheck-mode)
+
+#+end_src
+** yasnippet
+Snippets, configuration stolen from [[https://gist.github.com/karthink/7d89df35ee9b7ac0c93d0177b862dadb][here]]. Should look into how it works.
+#+begin_src emacs-lisp
+
+  ;; Yasnippet settings
+  (use-package yasnippet)
+  (yas-global-mode 1)
+
+#+end_src
+
+** Eglot
+A more sensible and minimal LSP implementation. Using for now, might switch back over at lsp-mode at some point.
+#+begin_src emacs-lisp
+
+  (use-package eglot)
+
+  (add-hook 'python-mode-hook 'eglot-ensure)
+  (add-hook 'LaTeX-mode-hook 'eglot-ensure)
+
+#+end_src
+
+** company-mode
+Text completion framework. Seems to be working good.
+#+begin_src emacs-lisp
+
+    (use-package company)
+
+    (add-hook 'after-init-hook 'global-company-mode)
+
+    ;; No delay when showing suggestions
+    (setq company-idle-delay 0.3)
+    ;; Show suggestions after the first character is typed
+    (setq company-minimum-prefix-length 1)
+    ;; Make the selection wrap around
+    (setq company-selection-wrap-around t)
+    ;; Make tab cycle
+    (company-tng-mode)
+
+#+end_src

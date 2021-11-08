@@ -35,9 +35,10 @@
 ;; Initialize package sources
 (require 'package)
 
-(setq package-archives '(("melpa" . "https://melpa.org/packages/")
-                         ("org"   . "https://orgmode.org/elpa/")
-                         ("elpa"  . "https://elpa.gnu.org/packages/")))
+(add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/") t)
+(add-to-list 'package-archives '("org"   . "https://orgmode.org/elpa/") t)
+(add-to-list 'package-archives '("elpa"   . "https://elpa.gnu.org/packages/") t)
+(add-to-list 'package-archives '("elpa"   . "http://elpa.gnu.org/packages/") t)
 
 (package-initialize)
 (unless package-archive-contents
@@ -57,17 +58,7 @@
   :diminish
   :bind (("C-s" . swiper)
          :map ivy-minibuffer-map
-         ("TAB" . ivy-alt-done)
-         ("C-l" . ivy-alt-done)
-         ("C-j" . ivy-next-line)
-         ("C-k" . ivy-previous-line)
-         :map ivy-switch-buffer-map
-         ("C-k" . ivy-previous-line)
-         ("C-l" . ivy-done)
-         ("C-d" . ivy-switch-buffer-kill)
-         :map ivy-reverse-i-search-map
-         ("C-k" . ivy-previous-line)
-         ("C-d" . ivy-reverse-i-search-kill))
+         ("TAB" . ivy-alt-done))
   :config
   (ivy-mode 1))
 
@@ -83,6 +74,15 @@
   :ensure t
   :init (doom-modeline-mode 1)
   :custom ((doom-modeline-height 12)))
+
+(require 'cl-lib)
+(defun my-keyboard-escape-quit (fun &rest args)
+  (cl-letf (((symbol-function 'one-window-p) (lambda (&rest _) t)))
+    (apply fun args)))
+(advice-add 'keyboard-escape-quit :around #'my-keyboard-escape-quit)
+
+(use-package page-break-lines)
+(global-page-break-lines-mode)
 
 ;; Uses rainbow colors for matching parens etc
 (use-package rainbow-delimiters
@@ -120,8 +120,6 @@
 (use-package tablist)
 (use-package pdf-tools)
 (pdf-tools-install)
-
-(use-package org-noter)
 
 (defun efs/org-mode-setup ()
   (org-indent-mode)
@@ -192,6 +190,8 @@
 
 (use-package anki-editor)
 
+(use-package org-noter)
+
 (setq org-capture-templates
       `(("t" "Tasks / Projects")
         ("tt" "Task" entry (file+olp "~/Documents/repos/org/agenda/Tasks.org" "Inbox")
@@ -229,3 +229,46 @@
       (org-babel-tangle))))
 
 (add-hook 'org-mode-hook (lambda () (add-hook 'after-save-hook #'efs/org-babel-tangle-config)))
+
+(use-package python-mode
+  :ensure t
+  ;;:hook (python-mode . eglot)
+  ;; :hook (python-mode . lsp)
+  :custom
+  ;; NOTE: Set these if Python 3 is called "python3" on your system!
+  (python-shell-interpreter "python3"))
+
+  ;; Leaving the debugging stuff out for now.
+  ;; (dap-python-executable "python3")
+  ;; (dap-python-debugger 'debugpy)
+  ;; :config
+  ;; (require 'dap-python))
+
+(use-package company-math)
+;; global activation of the unicode symbol completion 
+(add-to-list 'company-backends 'company-math-symbols-unicode)
+
+(use-package flycheck)
+(global-flycheck-mode)
+
+;; Yasnippet settings
+(use-package yasnippet)
+(yas-global-mode 1)
+
+(use-package eglot)
+
+(add-hook 'python-mode-hook 'eglot-ensure)
+(add-hook 'LaTeX-mode-hook 'eglot-ensure)
+
+(use-package company)
+
+(add-hook 'after-init-hook 'global-company-mode)
+
+;; No delay when showing suggestions
+(setq company-idle-delay 0.3)
+;; Show suggestions after the first character is typed
+(setq company-minimum-prefix-length 1)
+;; Make the selection wrap around
+(setq company-selection-wrap-around t)
+;; Make tab cycle
+(company-tng-mode)
