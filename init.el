@@ -28,29 +28,31 @@
 ;; Make ESC quit
 (global-set-key (kbd "<escape>") 'keyboard-escape-quit)
 
-(use-package doom-themes
-  :defer t
-  :init (load-theme 'doom-solarized-light t))
-
 ;; Initialize package sources
-(require 'package)
+(defvar bootstrap-version)
+  (let ((bootstrap-file
+         (expand-file-name "straight/repos/straight.el/bootstrap.el" user-emacs-directory))
+        (bootstrap-version 5))
+    (unless (file-exists-p bootstrap-file)
+      (with-current-buffer
+          (url-retrieve-synchronously
+           "https://raw.githubusercontent.com/raxod502/straight.el/develop/install.el"
+           'silent 'inhibit-cookies)
+        (goto-char (point-max))
+        (eval-print-last-sexp)))
+    (load bootstrap-file nil 'nomessage))
 
-(add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/") t)
-(add-to-list 'package-archives '("org"   . "https://orgmode.org/elpa/") t)
-(add-to-list 'package-archives '("elpa"   . "https://elpa.gnu.org/packages/") t)
-(add-to-list 'package-archives '("elpa"   . "http://elpa.gnu.org/packages/") t)
-
-(package-initialize)
-(unless package-archive-contents
-  (package-refresh-contents))
-
-(require 'use-package)
-(setq use-package-always-ensure t)
+(straight-use-package 'use-package)
+(setq straight-use-package-by-default t)
 
 ;; Fix emacs $PATH to correspond with shell  
 
-(use-package exec-path-from-shell)
-(exec-path-from-shell-initialize)
+  (use-package exec-path-from-shell)
+    (exec-path-from-shell-initialize)
+
+(use-package doom-themes
+  :defer t
+  :init (load-theme 'doom-solarized-light t))
 
 (use-package swiper)
 (use-package counsel)
@@ -71,7 +73,6 @@
 
 (use-package all-the-icons)
 (use-package doom-modeline
-  :ensure t
   :init (doom-modeline-mode 1)
   :custom ((doom-modeline-height 12)))
 
@@ -83,6 +84,21 @@
 
 (use-package page-break-lines)
 (global-page-break-lines-mode)
+
+(delete-selection-mode 1)
+
+;; based on http://emacsredux.com/blog/2013/04/03/delete-file-and-buffer/
+(defun delete-file-and-buffer ()
+  "Kill the current buffer and deletes the file it is visiting."
+  (interactive)
+  (let ((filename (buffer-file-name)))
+    (if filename
+        (if (y-or-n-p (concat "Do you really want to delete file " filename " ?"))
+            (progn
+              (delete-file filename)
+              (message "Deleted file %s." filename)
+              (kill-buffer)))
+      (message "Not a file visiting buffer!"))))
 
 ;; Uses rainbow colors for matching parens etc
 (use-package rainbow-delimiters
@@ -171,26 +187,16 @@
          ((todo "NEXT"
                 ((org-agenda-overriding-header "Next Tasks")))))))
 
+(setenv "LANG" "en_US.UTF-8")
+
 (use-package org-fragtog
   :init (add-hook 'org-mode-hook 'org-fragtog-mode))
 
-(setq org-preview-latex-process-alist
-      '(
-       (dvipng
-        :programs ("latex" "dvipng")
-        :description "dvi > png"
-        :message "you need to install the programs: latex and dvipng."
-        :image-input-type "dvi"
-        :image-output-type "png"
-        :image-size-adjust (1.0 . 1.0)
-        :latex-compiler ("latex -interaction nonstopmode -output-directory %o %f")
-        :image-converter ("dvipng -D %D -T tight -o %O %f"))))
-
-(setq org-format-latex-options (plist-put org-format-latex-options :scale 2.0))
-
-(use-package anki-editor)
+(setq org-format-latex-options (plist-put org-format-latex-options :scale 2))
 
 (use-package org-noter)
+
+(use-package anki-editor)
 
 (setq org-capture-templates
       `(("t" "Tasks / Projects")
@@ -222,16 +228,45 @@
 
 ;; Automatically tangle our Emacs.org config file when we save it
 (defun efs/org-babel-tangle-config ()
-  (when (string-equal (buffer-file-name)
-                      (expand-file-name "~/.emacs.d/init.org"))
+  (when (and (buffer-file-name)
+             (string-equal (buffer-file-name)
+                      (expand-file-name "~/.emacs.d/init.org")))
     ;; Dynamic scoping to the rescue
     (let ((org-confirm-babel-evaluate nil))
       (org-babel-tangle))))
 
 (add-hook 'org-mode-hook (lambda () (add-hook 'after-save-hook #'efs/org-babel-tangle-config)))
 
+(use-package org-roam
+  :init
+  (setq org-roam-v2-ack t)
+  :custom
+  (org-roam-directory "~/Documents/repos/org/roam")
+  (org-roam-completion-everywhere t)
+  :bind (("C-c n l" . org-roam-buffer-toggle)
+         ("C-c n f" . org-roam-node-find)
+         ("C-c n i" . org-roam-node-insert)
+         ("C-c n c" . org-roam-capture)
+         :map org-mode-map
+         ("C-M-i"    . completion-at-point))
+  :config
+  (org-roam-setup))
+
+(use-package org-roam-ui
+  :straight
+    (:host github :repo "org-roam/org-roam-ui" :branch "main" :files ("*.el" "out"))
+    :after org-roam
+;;         normally we'd recommend hooking orui after org-roam, but since org-roam does not have
+;;         a hookable mode anymore, you're advised to pick something yourself
+;;         if you don't care about startup time, use
+    :hook (after-init . org-roam-ui-mode)
+    :config
+    (setq org-roam-ui-sync-theme t
+          org-roam-ui-follow t
+          org-roam-ui-update-on-save t
+          org-roam-ui-open-on-start t))
+
 (use-package python-mode
-  :ensure t
   ;;:hook (python-mode . eglot)
   ;; :hook (python-mode . lsp)
   :custom
@@ -244,9 +279,8 @@
   ;; :config
   ;; (require 'dap-python))
 
-(use-package company-math)
-;; global activation of the unicode symbol completion 
-(add-to-list 'company-backends 'company-math-symbols-unicode)
+(use-package company-auctex
+  :init (company-auctex-init))
 
 (use-package flycheck)
 (global-flycheck-mode)
@@ -258,7 +292,7 @@
 (use-package eglot)
 
 (add-hook 'python-mode-hook 'eglot-ensure)
-(add-hook 'LaTeX-mode-hook 'eglot-ensure)
+;;(add-hook 'LaTeX-mode-hook 'eglot-ensure)
 
 (use-package company)
 
