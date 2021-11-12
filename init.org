@@ -67,7 +67,7 @@ We use =straight.el= due to greater power and flexibility, especially and/or spe
 
 *** early-init loading
 This disables the built-in package manager from loading.
-#+begin_src emacs-lisp :tangle ./early-init.el
+#+begin_src emacs-lisp :tangle no
 
   (setq package-enable-at-startup nil)
 
@@ -113,6 +113,13 @@ This disables the built-in package manager from loading.
 
 #+end_src
 
+** Tabs
+And tab bars which manage window configurations.
+#+begin_src emacs-lisp
+  (setq tab-bar-show t) ; Starts tab-bar-mode when having more than one tab.
+
+  ;;  (setq tab-bar-select-tab-modifiers )
+#+end_src
 ** Misc
 *** ESC ESC ESC deradicalization
 Replace the =ESC ESC ESC= command with one which does not close all other windows.
@@ -156,6 +163,22 @@ Makes it so yanking/typing over a selected region of text deletes what is alread
 
 #+end_src
 
+*** Saving emacs sessions
+#+begin_src emacs-lisp
+  (desktop-save-mode 1)
+#+end_src
+*** Paren stuff
+#+begin_src emacs-lisp
+  (electric-pair-mode 1)
+  (show-paren-mode 1)
+  (setq show-paren-delay 0)
+#+end_src
+
+*** Winner mode
+Allows to undo and redo window configurations.
+#+begin_src emacs-lisp
+  (winner-mode 1)
+#+end_src
 
 * General packages
 ** Rainbow delimiters
@@ -163,7 +186,8 @@ Makes it so yanking/typing over a selected region of text deletes what is alread
 
   ;; Uses rainbow colors for matching parens etc
   (use-package rainbow-delimiters
-    :hook (prog-mode . rainbow-delimiters-mode))
+    :defer t
+    :hook (prog-mode . rainbow-delimiters-mode))  
 
 #+end_src
 
@@ -219,6 +243,29 @@ A better pdf reader for emacs, here specifically for use with org-noter
   (use-package pdf-tools)
   (pdf-tools-install)
 
+#+end_src
+
+** Window-numbering
+#+begin_src emacs-lisp
+
+  (setq winum-keymap
+    (let ((map (make-sparse-keymap)))
+      (define-key map (kbd "C-`") 'winum-select-window-by-number)
+      (define-key map (kbd "s-0") 'winum-select-window-0-or-10)
+      (define-key map (kbd "s-1") 'winum-select-window-1)
+      (define-key map (kbd "s-2") 'winum-select-window-2)
+      (define-key map (kbd "s-3") 'winum-select-window-3)
+      (define-key map (kbd "s-4") 'winum-select-window-4)
+      (define-key map (kbd "s-5") 'winum-select-window-5)
+      (define-key map (kbd "s-6") 'winum-select-window-6)
+      (define-key map (kbd "s-7") 'winum-select-window-7)
+      (define-key map (kbd "s-8") 'winum-select-window-8)
+      (define-key map (kbd "s-9") 'winum-select-window-8)
+      map))
+
+  (use-package winum)
+
+  (winum-mode)
 #+end_src
 
 
@@ -283,16 +330,38 @@ A better pdf reader for emacs, here specifically for use with org-noter
 #+end_src
 
 ** LaTeX processing in org
+*** Basic
 #+begin_src emacs-lisp
-  (setenv "LANG" "en_US.UTF-8")
+  (setq org-startup-latex-with-latex-preview t)
 
   (use-package org-fragtog
     :init (add-hook 'org-mode-hook 'org-fragtog-mode))
 
-  (setq org-format-latex-options (plist-put org-format-latex-options :scale 2))
+  (setq org-format-latex-options (plist-put org-format-latex-options :scale 1.5))
 #+end_src
 
-$3 + 2x = 3x^2$ 
+$3 + 2x = 3x^2$
+
+\[
+x^{2}
+\] 
+
+*** Krofna-hack
+Automatically expands upon typing a space after $ or \].
+#+begin_src emacs-lisp :tangle no
+  (defun krofna-hack ()
+    (when (or (looking-back (rx "$ "))
+              (looking-back (rx "\] ")))
+      (save-excursion
+        (backward-char 1)
+        (org-toggle-latex-fragment))))
+
+  (add-hook 'org-mode-hook
+            (lambda ()
+              (org-cdlatex-mode)
+              (add-hook 'post-self-insert-hook #'krofna-hack 'append 'local)))
+
+#+end_src
 
 ** Minor extensions
 *** TODO Org-noter
@@ -304,8 +373,8 @@ Taking pdf notes org-mode that sync to inside the document.
 *** Anki-editor
 #+begin_src emacs-lisp
   (use-package anki-editor)
-#+end_src
-
+  #+end_src
+  
 ** TODO Capture templates
 #+begin_src emacs-lisp
 
@@ -330,18 +399,19 @@ Taking pdf notes org-mode that sync to inside the document.
 ** Babel configuration
 *** Initialization
 #+begin_src emacs-lisp
+  
+  (org-babel-do-load-languages
+   'org-babel-load-languages
+   '((emacs-lisp . t)
+     (python . t)))
 
-(org-babel-do-load-languages
- 'org-babel-load-languages
- '((emacs-lisp . t)
-   (python . t)))
 
-(setq org-confirm-babel-evaluate nil)
-(require 'org-tempo)
+  (setq org-confirm-babel-evaluate nil)
+  (require 'org-tempo)
 
-(add-to-list 'org-structure-template-alist '("sh" . "src shell"))
-(add-to-list 'org-structure-template-alist '("el" . "src emacs-lisp"))
-(add-to-list 'org-structure-template-alist '("py" . "src python"))
+  (add-to-list 'org-structure-template-alist '("sh" . "src shell"))
+  (add-to-list 'org-structure-template-alist '("el" . "src emacs-lisp"))
+  (add-to-list 'org-structure-template-alist '("py" . "src python"))
 
 #+end_src
 
@@ -350,19 +420,20 @@ Taking pdf notes org-mode that sync to inside the document.
 
   ;; Automatically tangle our Emacs.org config file when we save it
   (defun efs/org-babel-tangle-config ()
-    (when (and (buffer-file-name)
-               (string-equal (buffer-file-name)
-                        (expand-file-name "~/.emacs.d/init.org")))
+    (when (string-equal (buffer-file-name)
+                        (expand-file-name "~/.emacs.d/init.org"))
       ;; Dynamic scoping to the rescue
       (let ((org-confirm-babel-evaluate nil))
         (org-babel-tangle))))
-
+  
   (add-hook 'org-mode-hook (lambda () (add-hook 'after-save-hook #'efs/org-babel-tangle-config)))
 
 #+end_src
 
-** Org-roam
-*** Base
+
+
+* Org-roam
+** Base
 #+begin_src emacs-lisp
 
   (use-package org-roam
@@ -381,7 +452,7 @@ Taking pdf notes org-mode that sync to inside the document.
     (org-roam-setup))
 
 #+end_src
-*** Org-roam-ui
+** Org-roam-ui
 A package which allows one to view their nodes as a graph, using a web interface. [[https://github.com/org-roam/org-roam-ui][Link]].
 #+begin_src emacs-lisp
 
@@ -392,20 +463,19 @@ A package which allows one to view their nodes as a graph, using a web interface
   ;;         normally we'd recommend hooking orui after org-roam, but since org-roam does not have
   ;;         a hookable mode anymore, you're advised to pick something yourself
   ;;         if you don't care about startup time, use
-      :hook (after-init . org-roam-ui-mode)
+     ;; :hook (after-init . org-roam-ui-mode)
       :config
       (setq org-roam-ui-sync-theme t
             org-roam-ui-follow t
             org-roam-ui-update-on-save t
-            org-roam-ui-open-on-start t))
+            org-roam-ui-open-on-start nil))
 
 
 #+end_src
-*** TODO org-roam-bibtex
-*** Org-roam templates
-**** Default
+** TODO org-roam-bibtex
+** Org-roam templates
 The default template (and as such what we will set our templates list for now) is:
-#+begin_src emacs-lisp :tangle no
+#+begin_src emacs-lisp
 
   (setq org-roam-capture-templates
     '(("d" "default" plain
@@ -419,12 +489,12 @@ The default template (and as such what we will set our templates list for now) i
             "\n* Source\n\nAuthor: %^{Author}\nTitle: ${title}\nYear: %^{Year}\n\n* Summary\n\n%?"
             :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n#+filetags: Book")
             :unnarrowed t)
-      ("m" "Definicija" plain (file "~/Documents/repos/org/roam/templates/MathDefTemplate.org")
+      ("f" "Flashcard" plain (file "~/Documents/repos/org/roam/templates/AnkiNoteTemplate.org")
        :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n")
          :unnarrowed t)))
 
 #+end_src
-***** An explanation:
+*** An explanation:
 + "d": The "key", a letter that you press to choose the template
 + "default": The full name of the template
 + plain: The type of text being inserted, always this value for note templates
@@ -432,14 +502,13 @@ The default template (and as such what we will set our templates list for now) i
 + :if-new : The list that follows this describes how the note file will be created
 + :unnarrowed t : Ensures that the full file will be displayed when captured (an Org thing)
 
-  
-* Programming stuff
-** Languages
-*** Python
+
+* Languages
+** Python
 #+begin_src emacs-lisp
 
   (use-package python-mode
-    ;;:hook (python-mode . eglot)
+    :hook (python-mode . eglot)
     ;; :hook (python-mode . lsp)
     :custom
     ;; NOTE: Set these if Python 3 is called "python3" on your system!
@@ -453,10 +522,10 @@ The default template (and as such what we will set our templates list for now) i
 
 #+end_src
 
-*** LaTeX
+** LaTeX
 Have to review all of the packages and make sure everything plays nice, and configure various interactions etc, have to see how much LSP will do by itself.
-**** AUCTeX
-#+begin_src emacs-lisp :tangle no
+*** AUCTeX
+#+begin_src emacs-lisp
 
   (use-package auctex
     :hook ((LaTeX-mode . prettify-symbols-mode)))
@@ -472,15 +541,15 @@ Have to review all of the packages and make sure everything plays nice, and conf
              #'TeX-revert-document-buffer)
 
 #+end_src
-**** Company-AUCTeX
-#+begin_src emacs-lisp
+*** Company-AUCTeX
+#+begin_src emacs-lisp :tangle-no
 
   (use-package company-auctex
     :init (company-auctex-init))
 
 #+end_src
-**** CDLaTex
-#+begin_src emacs-lisp :tangle no
+*** CDLaTex
+#+begin_src emacs-lisp
 
   (use-package cdlatex
     :hook (LaTeX-mode . turn-on-cdlatex)
@@ -492,7 +561,7 @@ Have to review all of the packages and make sure everything plays nice, and conf
 
 #+end_src
 
-**** TODO LazyTab
+*** TODO LazyTab
 Currently not working. Might be better just to get the actual package [[https://github.com/karthink/lazytab][Lazytab]] working.
 #+begin_src emacs-lisp :tangle no
 
@@ -580,6 +649,9 @@ Currently not working. Might be better just to get the actual package [[https://
         (org-table-next-field))))
 
 #+end_src
+
+
+* Programming stuff
 ** Flycheck
 Syntax checking, seems to just work, so to speak.
 #+begin_src emacs-lisp
@@ -602,6 +674,7 @@ Snippets, configuration stolen from [[https://gist.github.com/karthink/7d89df35e
 A more sensible and minimal LSP implementation. Using for now, might switch back over at lsp-mode at some point.
 #+begin_src emacs-lisp
 
+  (use-package project)
   (use-package eglot)
 
   (add-hook 'python-mode-hook 'eglot-ensure)
@@ -627,3 +700,15 @@ Text completion framework. Seems to be working good.
     (company-tng-mode)
 
 #+end_src
+
+
+
+
+
+
+
+
+
+
+
+

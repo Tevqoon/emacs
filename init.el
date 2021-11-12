@@ -76,6 +76,10 @@
   :init (doom-modeline-mode 1)
   :custom ((doom-modeline-height 12)))
 
+(setq tab-bar-show t) ; Starts tab-bar-mode when having more than one tab.
+
+;;  (setq tab-bar-select-tab-modifiers )
+
 (require 'cl-lib)
 (defun my-keyboard-escape-quit (fun &rest args)
   (cl-letf (((symbol-function 'one-window-p) (lambda (&rest _) t)))
@@ -100,8 +104,17 @@
               (kill-buffer)))
       (message "Not a file visiting buffer!"))))
 
+(desktop-save-mode 1)
+
+(electric-pair-mode 1)
+(show-paren-mode 1)
+(setq show-paren-delay 0)
+
+(winner-mode 1)
+
 ;; Uses rainbow colors for matching parens etc
 (use-package rainbow-delimiters
+  :defer t
   :hook (prog-mode . rainbow-delimiters-mode))
 
 ;; Shows possible keyboard shortcuts
@@ -136,6 +149,25 @@
 (use-package tablist)
 (use-package pdf-tools)
 (pdf-tools-install)
+
+(setq winum-keymap
+  (let ((map (make-sparse-keymap)))
+    (define-key map (kbd "C-`") 'winum-select-window-by-number)
+    (define-key map (kbd "s-0") 'winum-select-window-0-or-10)
+    (define-key map (kbd "s-1") 'winum-select-window-1)
+    (define-key map (kbd "s-2") 'winum-select-window-2)
+    (define-key map (kbd "s-3") 'winum-select-window-3)
+    (define-key map (kbd "s-4") 'winum-select-window-4)
+    (define-key map (kbd "s-5") 'winum-select-window-5)
+    (define-key map (kbd "s-6") 'winum-select-window-6)
+    (define-key map (kbd "s-7") 'winum-select-window-7)
+    (define-key map (kbd "s-8") 'winum-select-window-8)
+    (define-key map (kbd "s-9") 'winum-select-window-8)
+    map))
+
+(use-package winum)
+
+(winum-mode)
 
 (defun efs/org-mode-setup ()
   (org-indent-mode)
@@ -187,12 +219,12 @@
          ((todo "NEXT"
                 ((org-agenda-overriding-header "Next Tasks")))))))
 
-(setenv "LANG" "en_US.UTF-8")
+(setq org-startup-latex-with-latex-preview t)
 
 (use-package org-fragtog
   :init (add-hook 'org-mode-hook 'org-fragtog-mode))
 
-(setq org-format-latex-options (plist-put org-format-latex-options :scale 2))
+(setq org-format-latex-options (plist-put org-format-latex-options :scale 1.5))
 
 (use-package org-noter)
 
@@ -219,6 +251,7 @@
  '((emacs-lisp . t)
    (python . t)))
 
+
 (setq org-confirm-babel-evaluate nil)
 (require 'org-tempo)
 
@@ -228,9 +261,8 @@
 
 ;; Automatically tangle our Emacs.org config file when we save it
 (defun efs/org-babel-tangle-config ()
-  (when (and (buffer-file-name)
-             (string-equal (buffer-file-name)
-                      (expand-file-name "~/.emacs.d/init.org")))
+  (when (string-equal (buffer-file-name)
+                      (expand-file-name "~/.emacs.d/init.org"))
     ;; Dynamic scoping to the rescue
     (let ((org-confirm-babel-evaluate nil))
       (org-babel-tangle))))
@@ -259,15 +291,31 @@
 ;;         normally we'd recommend hooking orui after org-roam, but since org-roam does not have
 ;;         a hookable mode anymore, you're advised to pick something yourself
 ;;         if you don't care about startup time, use
-    :hook (after-init . org-roam-ui-mode)
+   ;; :hook (after-init . org-roam-ui-mode)
     :config
     (setq org-roam-ui-sync-theme t
           org-roam-ui-follow t
           org-roam-ui-update-on-save t
-          org-roam-ui-open-on-start t))
+          org-roam-ui-open-on-start nil))
+
+(setq org-roam-capture-templates
+  '(("d" "default" plain
+     "%?"
+     :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n")
+     :unnarrowed t)
+    ("p" "project" plain "* Goals\n\n%?\n\n* Tasks\n\n** TODO Add initial tasks\n\n* Dates\n\n"
+            :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n#+filetags: Project")
+            :unnarrowed t)
+    ("b" "book notes" plain
+          "\n* Source\n\nAuthor: %^{Author}\nTitle: ${title}\nYear: %^{Year}\n\n* Summary\n\n%?"
+          :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n#+filetags: Book")
+          :unnarrowed t)
+    ("f" "Flashcard" plain (file "~/Documents/repos/org/roam/templates/AnkiNoteTemplate.org")
+     :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n")
+       :unnarrowed t)))
 
 (use-package python-mode
-  ;;:hook (python-mode . eglot)
+  :hook (python-mode . eglot)
   ;; :hook (python-mode . lsp)
   :custom
   ;; NOTE: Set these if Python 3 is called "python3" on your system!
@@ -279,8 +327,28 @@
   ;; :config
   ;; (require 'dap-python))
 
+(use-package auctex
+  :hook ((LaTeX-mode . prettify-symbols-mode)))
+
+(setq latex-run-command "xelatex")
+
+;; Use pdf-tools to open PDF files
+(setq TeX-view-program-selection '((output-pdf "PDF Tools"))
+      TeX-source-correlate-start-server t)
+
+;; Update PDF buffers after successful LaTeX runs
+(add-hook 'TeX-after-compilation-finished-functions
+           #'TeX-revert-document-buffer)
+
 (use-package company-auctex
   :init (company-auctex-init))
+
+(use-package cdlatex
+  :hook (LaTeX-mode . turn-on-cdlatex)
+  :bind (:map cdlatex-mode-map 
+              ("<tab>" . cdlatex-tab)))
+
+(add-hook 'org-mode-hook #'turn-on-org-cdlatex)
 
 (use-package flycheck)
 (global-flycheck-mode)
@@ -289,6 +357,7 @@
 (use-package yasnippet)
 (yas-global-mode 1)
 
+(use-package project)
 (use-package eglot)
 
 (add-hook 'python-mode-hook 'eglot-ensure)
