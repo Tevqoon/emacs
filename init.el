@@ -54,6 +54,15 @@
   :defer t
   :init (load-theme 'doom-solarized-light t))
 
+(defun my/apply-theme (appearance)
+  "Load theme, taking current system APPEARANCE into consideration."
+  (mapc #'disable-theme custom-enabled-themes)
+  (pcase appearance
+    ('light (load-theme 'doom-solarized-light t))
+    ('dark (load-theme 'doom-solarized-dark-high-contrast t))))
+
+(add-hook 'ns-system-appearance-change-functions #'my/apply-theme)
+
 (use-package swiper)
 (use-package counsel)
 (use-package ivy
@@ -76,7 +85,7 @@
   :init (doom-modeline-mode 1)
   :custom ((doom-modeline-height 12)))
 
-(setq tab-bar-show t) ; Starts tab-bar-mode when having more than one tab.
+(tab-bar-mode) ; We run it a priori in case the saved desktop already has tabs.
 
 ;;  (setq tab-bar-select-tab-modifiers )
 
@@ -107,6 +116,11 @@
 (desktop-save-mode 1)
 
 (electric-pair-mode 1)
+
+;; Inhibit < so it can be used for snippets in org
+(add-function :before-until electric-pair-inhibit-predicate
+(lambda (c) (eq c ?<)))
+
 (show-paren-mode 1)
 (setq show-paren-delay 0)
 
@@ -219,16 +233,17 @@
          ((todo "NEXT"
                 ((org-agenda-overriding-header "Next Tasks")))))))
 
-(setq org-startup-latex-with-latex-preview t)
-
-(use-package org-fragtog
-  :init (add-hook 'org-mode-hook 'org-fragtog-mode))
-
-(setq org-format-latex-options (plist-put org-format-latex-options :scale 1.5))
-
 (use-package org-noter)
 
 (use-package anki-editor)
+
+(defun anki/after-save-actions ()
+  "Checks whether the current file contains the ANKI_NOTE_TYPE property in the current org buffer, and pushes the flashcards in the buffer if it does."
+  (when (member "ANKI_NOTE_TYPE" (org-buffer-property-keys))
+    (anki-editor-push-notes)))
+
+(add-hook 'org-mode-hook (lambda () (add-hook 'after-save-hook
+                                          #'anki/after-save-actions)))
 
 (setq org-capture-templates
       `(("t" "Tasks / Projects")
@@ -314,6 +329,12 @@
      :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n")
        :unnarrowed t)))
 
+(use-package project)
+(use-package eglot)
+
+(add-hook 'python-mode-hook 'eglot-ensure)
+;;(add-hook 'LaTeX-mode-hook 'eglot-ensure)
+
 (use-package python-mode
   :hook (python-mode . eglot)
   ;; :hook (python-mode . lsp)
@@ -343,12 +364,17 @@
 (use-package company-auctex
   :init (company-auctex-init))
 
-(use-package cdlatex
-  :hook (LaTeX-mode . turn-on-cdlatex)
-  :bind (:map cdlatex-mode-map 
-              ("<tab>" . cdlatex-tab)))
+(use-package xenops)
 
-(add-hook 'org-mode-hook #'turn-on-org-cdlatex)
+(add-hook 'latex-mode-hook #'xenops-mode)
+(add-hook 'LaTeX-mode-hook #'xenops-mode)
+(add-hook 'org-mode-hook #'xenops-mode)
+
+(add-hook 'xenops-mode-hook #'xenops-dwim)
+
+
+(setq xenops-reveal-on-entry t)
+(setq xenops-math-image-scale-factor 2.0)
 
 (use-package flycheck)
 (global-flycheck-mode)
@@ -357,11 +383,7 @@
 (use-package yasnippet)
 (yas-global-mode 1)
 
-(use-package project)
-(use-package eglot)
-
-(add-hook 'python-mode-hook 'eglot-ensure)
-;;(add-hook 'LaTeX-mode-hook 'eglot-ensure)
+(use-package yasnippet-snippets)
 
 (use-package company)
 

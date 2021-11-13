@@ -38,6 +38,7 @@
 #+end_src
 
 ** Package initialization
+
 We use =straight.el= due to greater power and flexibility, especially and/or specifically for =org-roam-ui=. [[https://github.com/raxod502/straight.el][Link]].
 #+begin_src emacs-lisp
 
@@ -62,7 +63,7 @@ We use =straight.el= due to greater power and flexibility, especially and/or spe
 
     (use-package exec-path-from-shell)
       (exec-path-from-shell-initialize)
-
+  
 #+end_src
 
 *** early-init loading
@@ -72,7 +73,6 @@ This disables the built-in package manager from loading.
   (setq package-enable-at-startup nil)
 
 #+end_src
-
 ** Theme stuff
 #+begin_src emacs-lisp
 
@@ -80,7 +80,17 @@ This disables the built-in package manager from loading.
     :defer t
     :init (load-theme 'doom-solarized-light t))
 
+  (defun my/apply-theme (appearance)
+    "Load theme, taking current system APPEARANCE into consideration."
+    (mapc #'disable-theme custom-enabled-themes)
+    (pcase appearance
+      ('light (load-theme 'doom-solarized-light t))
+      ('dark (load-theme 'doom-solarized-dark-high-contrast t))))
+
+  (add-hook 'ns-system-appearance-change-functions #'my/apply-theme)
+  
 #+end_src
+
 ** Autocompletion stuff
 #+begin_src emacs-lisp
 
@@ -116,10 +126,11 @@ This disables the built-in package manager from loading.
 ** Tabs
 And tab bars which manage window configurations.
 #+begin_src emacs-lisp
-  (setq tab-bar-show t) ; Starts tab-bar-mode when having more than one tab.
-
+  (tab-bar-mode) ; We run it a priori in case the saved desktop already has tabs.
+  
   ;;  (setq tab-bar-select-tab-modifiers )
 #+end_src
+
 ** Misc
 *** ESC ESC ESC deradicalization
 Replace the =ESC ESC ESC= command with one which does not close all other windows.
@@ -170,8 +181,14 @@ Makes it so yanking/typing over a selected region of text deletes what is alread
 *** Paren stuff
 #+begin_src emacs-lisp
   (electric-pair-mode 1)
+
+  ;; Inhibit < so it can be used for snippets in org
+  (add-function :before-until electric-pair-inhibit-predicate
+  (lambda (c) (eq c ?<)))
+
   (show-paren-mode 1)
   (setq show-paren-delay 0)
+  
 #+end_src
 
 *** Winner mode
@@ -179,6 +196,7 @@ Allows to undo and redo window configurations.
 #+begin_src emacs-lisp
   (winner-mode 1)
 #+end_src
+
 
 * General packages
 ** Rainbow delimiters
@@ -329,40 +347,6 @@ A better pdf reader for emacs, here specifically for use with org-noter
                   ((org-agenda-overriding-header "Next Tasks")))))))
 #+end_src
 
-** LaTeX processing in org
-*** Basic
-#+begin_src emacs-lisp
-  (setq org-startup-latex-with-latex-preview t)
-
-  (use-package org-fragtog
-    :init (add-hook 'org-mode-hook 'org-fragtog-mode))
-
-  (setq org-format-latex-options (plist-put org-format-latex-options :scale 1.5))
-#+end_src
-
-$3 + 2x = 3x^2$
-
-\[
-x^{2}
-\] 
-
-*** Krofna-hack
-Automatically expands upon typing a space after $ or \].
-#+begin_src emacs-lisp :tangle no
-  (defun krofna-hack ()
-    (when (or (looking-back (rx "$ "))
-              (looking-back (rx "\] ")))
-      (save-excursion
-        (backward-char 1)
-        (org-toggle-latex-fragment))))
-
-  (add-hook 'org-mode-hook
-            (lambda ()
-              (org-cdlatex-mode)
-              (add-hook 'post-self-insert-hook #'krofna-hack 'append 'local)))
-
-#+end_src
-
 ** Minor extensions
 *** TODO Org-noter
 Taking pdf notes org-mode that sync to inside the document.
@@ -371,8 +355,19 @@ Taking pdf notes org-mode that sync to inside the document.
 #+end_src
 
 *** Anki-editor
+Allows editing of anki flashcards directly in org files using tags.
+To see whether a file contains a flash card, we check whether the org buffer has the property =ANKI_NOTE_TYPE=, the only required property for a flash card.
 #+begin_src emacs-lisp
   (use-package anki-editor)
+
+  (defun anki/after-save-actions ()
+    "Checks whether the current file contains the ANKI_NOTE_TYPE property in the current org buffer, and pushes the flashcards in the buffer if it does."
+    (when (member "ANKI_NOTE_TYPE" (org-buffer-property-keys))
+      (anki-editor-push-notes)))
+
+  (add-hook 'org-mode-hook (lambda () (add-hook 'after-save-hook
+                                            #'anki/after-save-actions)))
+
   #+end_src
   
 ** TODO Capture templates
@@ -502,8 +497,20 @@ The default template (and as such what we will set our templates list for now) i
 + :if-new : The list that follows this describes how the note file will be created
 + :unnarrowed t : Ensures that the full file will be displayed when captured (an Org thing)
 
-
+  
 * Languages
+** Eglot (LSP)
+A more sensible and minimal LSP implementation. Using for now, might switch back over at lsp-mode at some point.
+#+begin_src emacs-lisp
+
+  (use-package project)
+  (use-package eglot)
+
+  (add-hook 'python-mode-hook 'eglot-ensure)
+  ;;(add-hook 'LaTeX-mode-hook 'eglot-ensure)
+
+#+end_src
+
 ** Python
 #+begin_src emacs-lisp
 
@@ -549,7 +556,7 @@ Have to review all of the packages and make sure everything plays nice, and conf
 
 #+end_src
 *** CDLaTex
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle no
 
   (use-package cdlatex
     :hook (LaTeX-mode . turn-on-cdlatex)
@@ -560,93 +567,21 @@ Have to review all of the packages and make sure everything plays nice, and conf
 
 
 #+end_src
+*** Xenops
 
-*** TODO LazyTab
-Currently not working. Might be better just to get the actual package [[https://github.com/karthink/lazytab][Lazytab]] working.
-#+begin_src emacs-lisp :tangle no
+#+begin_src emacs-lisp
+  (use-package xenops)
 
-  ;; Array/tabular input with org-tables and cdlatex 
-  (use-package org-table
-    :after cdlatex
-    :bind (:map orgtbl-mode-map
-                ("<tab>" . lazytab-org-table-next-field-maybe)
-                ("TAB" . lazytab-org-table-next-field-maybe))
-    :init
-    (add-hook 'cdlatex-tab-hook 'lazytab-cdlatex-or-orgtbl-next-field 90)
-    ;; Tabular environments using cdlatex
-    (add-to-list 'cdlatex-command-alist '("smat" "Insert smallmatrix env"
-                                          "\\left( \\begin{smallmatrix} ? \\end{smallmatrix} \\right)"
-                                          lazytab-position-cursor-and-edit
-                                          nil nil t))
-    (add-to-list 'cdlatex-command-alist '("bmat" "Insert bmatrix env"
-                                          "\\begin{bmatrix} ? \\end{bmatrix}"
-                                          lazytab-position-cursor-and-edit
-                                          nil nil t))
-    (add-to-list 'cdlatex-command-alist '("pmat" "Insert pmatrix env"
-                                          "\\begin{pmatrix} ? \\end{pmatrix}"
-                                          lazytab-position-cursor-and-edit
-                                          nil nil t))
-    (add-to-list 'cdlatex-command-alist '("tbl" "Insert table"
-                                          "\\begin{table}\n\\centering ? \\caption{}\n\\end{table}\n"
-                                         lazytab-position-cursor-and-edit
-                                         nil t nil))
-    :config
-    ;; Tab handling in org tables
-    (defun lazytab-position-cursor-and-edit ()
-      ;; (if (search-backward "\?" (- (point) 100) t)
-      ;;     (delete-char 1))
-      (cdlatex-position-cursor)
-      (lazytab-orgtbl-edit))
+  (add-hook 'latex-mode-hook #'xenops-mode)
+  (add-hook 'LaTeX-mode-hook #'xenops-mode)
+  (add-hook 'org-mode-hook #'xenops-mode)
+  
+  (add-hook 'xenops-mode-hook #'xenops-dwim)
 
-    (defun lazytab-orgtbl-edit ()
-      (advice-add 'orgtbl-ctrl-c-ctrl-c :after #'lazytab-orgtbl-replace)
-      (orgtbl-mode 1)
-      (open-line 1)
-      (insert "\n|"))
 
-    (defun lazytab-orgtbl-replace (_)
-      (interactive "P")
-      (unless (org-at-table-p) (user-error "Not at a table"))
-      (let* ((table (org-table-to-lisp))
-             params
-             (replacement-table
-              (if (texmathp)
-                  (lazytab-orgtbl-to-amsmath table params)
-                (orgtbl-to-latex table params))))
-        (kill-region (org-table-begin) (org-table-end))
-        (open-line 1)
-        (push-mark)
-        (insert replacement-table)
-        (align-regexp (region-beginning) (region-end) "\\([:space:]*\\)& ")
-        (orgtbl-mode -1)
-        (advice-remove 'orgtbl-ctrl-c-ctrl-c #'lazytab-orgtbl-replace)))
+  (setq xenops-reveal-on-entry t)
+  (setq xenops-math-image-scale-factor 2.0)
 
-    (defun lazytab-orgtbl-to-amsmath (table params)
-      (orgtbl-to-generic
-       table
-       (org-combine-plists
-        '(:splice t
-                  :lstart ""
-                  :lend " \\\\"
-                  :sep " & "
-                  :hline nil
-                  :llend "")
-        params)))
-
-    (defun lazytab-cdlatex-or-orgtbl-next-field ()
-      (when (and (bound-and-true-p orgtbl-mode)
-                 (org-table-p)
-                 (looking-at "[[:space:]]*\\(?:|\\|$\\)")
-                 (let ((s (thing-at-point 'sexp)))
-                   (not (and s (assoc s cdlatex-command-alist-comb)))))
-        (call-interactively #'org-table-next-field)
-        t))
-
-    (defun lazytab-org-table-next-field-maybe ()
-      (interactive)
-      (if (bound-and-true-p cdlatex-mode)
-          (cdlatex-tab)
-        (org-table-next-field))))
 
 #+end_src
 
@@ -660,7 +595,7 @@ Syntax checking, seems to just work, so to speak.
   (global-flycheck-mode)
 
 #+end_src
-** yasnippet
+** Yasnippets
 Snippets, configuration stolen from [[https://gist.github.com/karthink/7d89df35ee9b7ac0c93d0177b862dadb][here]]. Should look into how it works.
 #+begin_src emacs-lisp
 
@@ -668,17 +603,7 @@ Snippets, configuration stolen from [[https://gist.github.com/karthink/7d89df35e
   (use-package yasnippet)
   (yas-global-mode 1)
 
-#+end_src
-
-** Eglot
-A more sensible and minimal LSP implementation. Using for now, might switch back over at lsp-mode at some point.
-#+begin_src emacs-lisp
-
-  (use-package project)
-  (use-package eglot)
-
-  (add-hook 'python-mode-hook 'eglot-ensure)
-  ;;(add-hook 'LaTeX-mode-hook 'eglot-ensure)
+  (use-package yasnippet-snippets)
 
 #+end_src
 
@@ -700,15 +625,4 @@ Text completion framework. Seems to be working good.
     (company-tng-mode)
 
 #+end_src
-
-
-
-
-
-
-
-
-
-
-
 
