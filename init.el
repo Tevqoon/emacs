@@ -1,3 +1,5 @@
+;; (setq debug-on-error t)
+
 (setq inhibit-startup-message t)
 
 (setq frame-resize-pixelwise t)
@@ -16,7 +18,8 @@
 (dolist (mode '(org-mode hook
                          term-mode-hook
                          shell-mode-hook
-                         eshell-mode-hook))
+                         eshell-mode-hook
+                         xwidget-webkit-mode-hook))
   (add-hook mode (lambda () (display-line-numbers-mode 0))))
 
 (set-face-attribute 'default nil :height 140)
@@ -24,6 +27,7 @@
 ;; Set right option key to act nicely to enter symbol layers
 (setq ns-alternate-modifier 'meta)
 (setq ns-right-alternate-modifier 'none)
+(setq ns-right-command-modifier 'hyper)
 
 ;; Make ESC quit
 (global-set-key (kbd "<escape>") 'keyboard-escape-quit)
@@ -64,6 +68,14 @@
 (add-hook 'ns-system-appearance-change-functions #'my/apply-theme)
 
 (use-package swiper)
+
+(defun bjm-swiper-recenter (&rest args)
+  "recenter display after swiper"
+  (recenter)q
+  )
+(advice-add 'swiper :after #'bjm-swiper-recenter)
+
+
 (use-package counsel)
 (use-package ivy
   :diminish
@@ -71,7 +83,7 @@
          :map ivy-minibuffer-map
          ("TAB" . ivy-alt-done))
   :config
-  (ivy-mode 1))
+    (ivy-mode 1))
 
 (use-package ivy-rich
   :init
@@ -85,9 +97,11 @@
   :init (doom-modeline-mode 1)
   :custom ((doom-modeline-height 12)))
 
-(tab-bar-mode) ; We run it a priori in case the saved desktop already has tabs.
+(tab-bar-mode)
 
-;;  (setq tab-bar-select-tab-modifiers )
+(desktop-save-mode 1)
+
+  ;;  (setq tab-bar-select-tab-modifiers )
 
 (require 'cl-lib)
 (defun my-keyboard-escape-quit (fun &rest args)
@@ -113,18 +127,19 @@
               (kill-buffer)))
       (message "Not a file visiting buffer!"))))
 
-(desktop-save-mode 1)
-
 (electric-pair-mode 1)
 
-;; Inhibit < so it can be used for snippets in org
-(add-function :before-until electric-pair-inhibit-predicate
-(lambda (c) (eq c ?<)))
+;; Inhibit the symbol less so it can be used for snippets in org
+(add-function
+ :before-until electric-pair-inhibit-predicate
+ (lambda (c) (eq c ?<)))
 
 (show-paren-mode 1)
 (setq show-paren-delay 0)
 
 (winner-mode 1)
+
+(global-auto-revert-mode)
 
 ;; Uses rainbow colors for matching parens etc
 (use-package rainbow-delimiters
@@ -157,6 +172,8 @@
   :custom
   (magit-display-buffer-function #'magit-display-buffer-same-window-except-diff-v1))
 
+(global-set-key (kbd "C-x g") 'magit-status)
+
 (use-package forge)
 (setq auth-sources '("~/.authinfo"))
 
@@ -167,7 +184,6 @@
 (setq winum-keymap
   (let ((map (make-sparse-keymap)))
     (define-key map (kbd "C-`") 'winum-select-window-by-number)
-    (define-key map (kbd "s-0") 'winum-select-window-0-or-10)
     (define-key map (kbd "s-1") 'winum-select-window-1)
     (define-key map (kbd "s-2") 'winum-select-window-2)
     (define-key map (kbd "s-3") 'winum-select-window-3)
@@ -190,9 +206,7 @@
 (use-package org
   :hook (org-mode . efs/org-mode-setup)
   :config
-  (setq org-ellipsis " ▾")
-  (setq org-agenda-files
-        '("~/Documents/repos/org/agenda")))
+  (setq org-ellipsis " ▾"))
 
 (use-package org-bullets
   :after org
@@ -201,7 +215,7 @@
   (org-bullets-bullet-list '("◉" "○" "●" "○" "●" "○" "●")))
 
 (defun efs/org-mode-visual-fill ()
-  (setq visual-fill-column-width 100
+  (setq visual-fill-column-width 150
         visual-fill-column-center-text t)
   (visual-fill-column-mode 1))
 
@@ -209,14 +223,13 @@
   :hook (org-mode . efs/org-mode-visual-fill))
 
 (setq org-todo-keywords
-      '((sequence "TODO(t)" "NEXT(n)" "|" "DONE(d!)")))
-
-(setq org-refile-targets
-      '(("~/Documents/repos/org/Archive.org" :maxlevel . 1)
-        ("~/Documents/repos/org/agenda/Tasks.org" :maxlevel . 1)))
+      '((sequence "TODO(t)" "NEXT(n)" "HOLD(h)" "WAITING(w)" "|" "DONE(d!)" "CANCELLED(c!)")))
 
 ;; Save org buffers after refiling
 (advice-add 'org-refile :after 'org-save-all-org-buffers)
+(advice-add 'org-archive-subtree :after 'org-save-all-org-buffers)
+
+(global-set-key (kbd "C-c a") 'org-agenda)
 
 (setq org-agenda-start-with-log-mode t)
 (setq org-log-done 'time)
@@ -233,33 +246,13 @@
          ((todo "NEXT"
                 ((org-agenda-overriding-header "Next Tasks")))))))
 
-(use-package org-noter)
-
-(use-package anki-editor)
-
-(defun anki/after-save-actions ()
-  "Checks whether the current file contains the ANKI_NOTE_TYPE property in the current org buffer, and pushes the flashcards in the buffer if it does."
-  (when (member "ANKI_NOTE_TYPE" (org-buffer-property-keys))
-    (anki-editor-push-notes)))
-
-(add-hook 'org-mode-hook (lambda () (add-hook 'after-save-hook
-                                          #'anki/after-save-actions)))
-
 (setq org-capture-templates
-      `(("t" "Tasks / Projects")
-        ("tt" "Task" entry (file+olp "~/Documents/repos/org/agenda/Tasks.org" "Inbox")
-         "* TODO %?\n  %U\n  %a\n  %i" :empty-lines 1)
+      `(("t" "Task" entry (file "~/Documents/org/20211117164414-inbox.org")
+         "* TODO %?\n  %U\n  %a\n  %i" :empty-lines 1)))
 
-        ("j" "Journal Entries")
-        ("jj" "Journal" entry
-         (file+olp+datetree "~/Documents/repos/org/Journal.org")
-         "\n* %<%I:%M %p> - Journal :journal:\n\n%?\n\n"
-         ;; ,(dw/read-file-as-string "~/Notes/Templates/Daily.org")
-         :clock-in :clock-resume
-         :empty-lines 1)))
-
-(define-key global-map (kbd "C-c j")
-  (lambda () (interactive) (org-capture nil "jj")))
+(define-key global-map (kbd "M-i")
+  (lambda
+    () (interactive) (org-capture)))
 
 (org-babel-do-load-languages
  'org-babel-load-languages
@@ -284,20 +277,42 @@
 
 (add-hook 'org-mode-hook (lambda () (add-hook 'after-save-hook #'efs/org-babel-tangle-config)))
 
+(use-package org-noter)
+
+(setq org-export-with-broken-links t)
+
 (use-package org-roam
   :init
   (setq org-roam-v2-ack t)
   :custom
-  (org-roam-directory "~/Documents/repos/org/roam")
+  (org-roam-directory "~/Documents/org")
   (org-roam-completion-everywhere t)
   :bind (("C-c n l" . org-roam-buffer-toggle)
          ("C-c n f" . org-roam-node-find)
          ("C-c n i" . org-roam-node-insert)
          ("C-c n c" . org-roam-capture)
+         ("C-c n d" . org-roam-dailies-map)
+         ("C-c n r" . org-roam-refile)
          :map org-mode-map
          ("C-M-i"    . completion-at-point))
   :config
   (org-roam-setup))
+
+(advice-add 'org-roam-refile :after 'org-save-all-org-buffers)
+
+(setq org-roam-mode-section-functions
+    (list #'org-roam-backlinks-section
+          #'org-roam-reflinks-section
+          #'org-roam-unlinked-references-section))
+
+(add-to-list 'display-buffer-alist
+           '("\\*org-roam\\*"
+             (display-buffer-in-direction)
+             (direction . right)
+             (window-width . 0.33)
+             (window-height . fit-window-to-buffer)))
+
+(setq org-roam-dailies-directory "daily/")
 
 (use-package org-roam-ui
   :straight
@@ -308,10 +323,14 @@
 ;;         if you don't care about startup time, use
    ;; :hook (after-init . org-roam-ui-mode)
     :config
-    (setq org-roam-ui-sync-theme t
-          org-roam-ui-follow t
-          org-roam-ui-update-on-save t
-          org-roam-ui-open-on-start nil))
+    (setq org-roam-ui-sync-theme t)
+    (setq  org_roam-ui-follow nil)
+    (setq org-roam-ui-update-on-save t)
+    (setq org-roam-ui-open-on-start nil))
+
+(defun org-roam-ui-open-in-emacs ()
+  (interactive)
+  (xwidget-webkit-browse-url "http://localhost:35901"))
 
 (setq org-roam-capture-templates
   '(("d" "default" plain
@@ -328,6 +347,133 @@
     ("f" "Flashcard" plain (file "~/Documents/repos/org/roam/templates/AnkiNoteTemplate.org")
      :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n")
        :unnarrowed t)))
+
+()
+(use-package vulpea)
+
+(add-to-list 'org-tags-exclude-from-inheritance "project")
+
+(defun vulpea-project-p ()
+  "Return non-nil if current buffer has any todo entry.
+
+TODO entries marked as done are ignored, meaning the this
+function returns nil if current buffer contains only completed
+tasks."
+  (org-element-map                          ; (2)
+       (org-element-parse-buffer 'headline) ; (1)
+       'headline
+     (lambda (h)
+       (eq (org-element-property :todo-type h)
+           'todo))
+     nil 'first-match))                     ; (3)
+
+(setq prune/ignored-files
+      '("20211119122103-someday.org"
+        "20211117183951-tasks.org"
+        "20211117164414-inbox.org"))
+
+(defun vulpea-buffer-p ()
+  "Return non-nil if the currently visited buffer is a note."
+  (and buffer-file-name
+       (string-prefix-p
+        (expand-file-name (file-name-as-directory org-roam-directory))
+        (file-name-directory buffer-file-name))))
+
+(defun vulpea-project-update-tag ()
+  "Update PROJECT tag in the current buffer."
+  (when (and (not (member (buffer-name) prune/ignored-files))
+             (not (active-minibuffer-window))
+             (vulpea-buffer-p))
+    (save-excursion
+      (goto-char (point-min))
+      (let* ((tags (vulpea-buffer-tags-get))
+             (original-tags tags))
+        (if (vulpea-project-p)
+            (setq tags (cons "project" tags))
+          (setq tags (remove "project" tags)))
+
+        ;; cleanup duplicates
+        (setq tags (seq-uniq tags))
+
+        ;; update tags if changed
+        (when (or (seq-difference tags original-tags)
+                  (seq-difference original-tags tags))
+          (apply #'vulpea-buffer-tags-set tags))))))
+
+(add-hook 'find-file-hook #'vulpea-project-update-tag)
+(add-hook 'before-save-hook #'vulpea-project-update-tag)
+
+(defun vulpea-project-files ()
+  "Return a list of note files containing 'project' tag." ;
+  (seq-uniq
+   (seq-map
+    #'car
+    (org-roam-db-query
+     [:select [nodes:file]
+      :from tags
+      :left-join nodes
+      :on (= tags:node-id nodes:id)
+      :where (like tag (quote "%\"project\"%"))]))))
+
+(defun vulpea-agenda-files-update (&rest _)
+  "Update the value of `org-agenda-files'."
+  (setq org-agenda-files (vulpea-project-files)))
+
+(advice-add 'org-agenda :before #'vulpea-agenda-files-update)
+
+(use-package anki-editor)
+
+(add-to-list 'org-tags-exclude-from-inheritance "flashcards")
+
+(defun anki/flashcard-p ()
+  "Returns non-nil if the current buffer has a flash card"
+  (member "ANKI_NOTE_TYPE" (org-buffer-property-keys)))
+
+(defun anki/flashcards-update-tag ()
+  "Update flashcard tag in the current buffer"
+  (when (and (not (active-minibuffer-window))
+             (vulpea-buffer-p))
+    (save-excursion
+      (goto-char (point-min))
+      (let* ((tags (vulpea-buffer-tags-get))
+             (original-tags tags))
+        (if (anki/flashcard-p)
+            (setq tags (cons "flashcards" tags))
+          (setq tags (remove "flashcards" tags)))
+
+        ;; cleanup duplicates
+        (setq tags (seq-uniq tags))
+
+        ;; update tags if changed
+  (when (or (seq-difference tags original-tags)
+            (seq-difference original-tags tags))
+    (apply #'vulpea-buffer-tags-set tags))))))
+
+(add-hook 'find-file-hook #'anki/flashcards-update-tag)
+(add-hook 'before-save-hook #'anki/flashcards-update-tag)
+
+(defun anki/flashcards-files ()
+  "Return a list of note files containing 'project' tag." ;
+  (seq-uniq
+   (seq-map
+    #'car
+    (org-roam-db-query
+     [:select [nodes:file]
+      :from tags
+      :left-join nodes
+      :on (= tags:node-id nodes:id)
+      :where (like tag (quote "%\"flashcards\"%"))]))))
+
+(defun anki/push-filename (filename)
+  "Opens the file with filename as a temporary buffer and pushes its notes."
+  (save-excursion
+    (with-current-buffer (find-file-noselect filename)
+      (progn (anki-editor-push-notes)))))
+
+(defun anki/push-all ()
+  "Maps over the files with the flashcards tag and pushes them."
+  (interactive)
+  (mapc #'anki/push-filename (anki/flashcards-files)))
 
 (use-package project)
 (use-package eglot)
@@ -348,8 +494,12 @@
   ;; :config
   ;; (require 'dap-python))
 
-(use-package auctex
-  :hook ((LaTeX-mode . prettify-symbols-mode)))
+(setq org-latex-packages-alist '(("" "/Users/jure/.emacs.d/defaults/js" t)))
+;;(setq org-latex-packages-alist nil)
+
+(use-package tex-mode
+  :ensure auctex)
+(setq font-latex-fontify-script nil)
 
 (setq latex-run-command "xelatex")
 
@@ -357,21 +507,27 @@
 (setq TeX-view-program-selection '((output-pdf "PDF Tools"))
       TeX-source-correlate-start-server t)
 
+(setq-default TeX-master nil)
+
 ;; Update PDF buffers after successful LaTeX runs
 (add-hook 'TeX-after-compilation-finished-functions
            #'TeX-revert-document-buffer)
 
-(use-package company-auctex
-  :init (company-auctex-init))
+(use-package cdlatex
+  :hook (LaTeX-mode . turn-on-cdlatex)
+  :bind (:map cdlatex-mode-map 
+              ("<tab>" . cdlatex-tab)))
+
+(add-hook 'org-mode-hook #'turn-on-org-cdlatex)
 
 (use-package xenops)
 
-(add-hook 'latex-mode-hook #'xenops-mode)
-(add-hook 'LaTeX-mode-hook #'xenops-mode)
+;; (add-hook 'latex-mode-hook #'xenops-mode)
+;; (add-hook 'LaTeX-mode-hook #'xenops-mode)
 (add-hook 'org-mode-hook #'xenops-mode)
 
-(add-hook 'xenops-mode-hook #'xenops-dwim)
-
+;; The org files used are relatively small, hence we can afford to auto-expand.
+(add-hook 'org-mode-hook (lambda () (add-hook 'xenops-mode-hook #'xenops-dwim)))
 
 (setq xenops-reveal-on-entry t)
 (setq xenops-math-image-scale-factor 2.0)
@@ -379,21 +535,15 @@
 (use-package flycheck)
 (global-flycheck-mode)
 
+(use-package aas
+  :hook (LaTeX-mode . aas-activate-for-major-mode)
+  :hook (org-mode . aas-activate-for-major-mode))
+
+(use-package laas
+:hook (LaTeX-mode . laas-mode))
+
 ;; Yasnippet settings
 (use-package yasnippet)
 (yas-global-mode 1)
 
 (use-package yasnippet-snippets)
-
-(use-package company)
-
-(add-hook 'after-init-hook 'global-company-mode)
-
-;; No delay when showing suggestions
-(setq company-idle-delay 0.3)
-;; Show suggestions after the first character is typed
-(setq company-minimum-prefix-length 1)
-;; Make the selection wrap around
-(setq company-selection-wrap-around t)
-;; Make tab cycle
-(company-tng-mode)
