@@ -4,42 +4,48 @@
 * General configs
 ** Initialization
 #+begin_src emacs-lisp
-    ;; (setq debug-on-error t)
+  ;; (setq debug-on-error t)
 
-    (setq inhibit-startup-message t)
+  (setq inhibit-startup-message t)
 
-    (setq frame-resize-pixelwise t)
-    (tool-bar-mode -1)          ; Disable the toolbar
-    (tooltip-mode -1)           ; Disable tooltips
-    (set-fringe-mode 5)        ; Give some breathing room
+  (setq frame-resize-pixelwise t)
+  (tool-bar-mode -1)          ; Disable the toolbar
+  (tooltip-mode -1)           ; Disable tooltips
+  (set-fringe-mode 5)        ; Give some breathing room
 
-    (menu-bar-mode -1)            ; Disable the menu
+  (menu-bar-mode -1)            ; Disable the menu
 
-    (setq-default cursor-type 'bar)
+  (setq-default cursor-type 'bar)
 
-    (column-number-mode) ; Add column numbers to modeline
-    (global-display-line-numbers-mode t) ; Add line numbers
+  (column-number-mode) ; Add column numbers to modeline
+  (global-display-line-numbers-mode t) ; Add line numbers
 
-    ;;Disable line numbers for some modes
-    (dolist (mode '(org-mode hook
-                             term-mode-hook
-                             shell-mode-hook
-                             eshell-mode-hook
-                             xwidget-webkit-mode-hook))
-      (add-hook mode (lambda () (display-line-numbers-mode 0))))
+  ;;Disable line numbers for some modes
+  (dolist (mode '(org-mode hook
+                           term-mode-hook
+                           shell-mode-hook
+                           eshell-mode-hook
+                           xwidget-webkit-mode-hook))
+    (add-hook mode (lambda () (display-line-numbers-mode 0))))
 
-    (set-face-attribute 'default nil :height 140)
+  (set-face-attribute 'default nil :height 140)
 
-    ;; Set right option key to act nicely to enter symbol layers
-    (setq ns-alternate-modifier 'meta)
-    (setq ns-right-alternate-modifier 'none)
-    (setq ns-right-command-modifier 'hyper)
+  ;; Set right option key to act nicely to enter symbol layers
+  (setq ns-alternate-modifier 'meta)
+  (setq ns-right-alternate-modifier 'none)
+  (setq ns-right-command-modifier 'hyper)
 
-    ;; Make ESC quit
-    (global-set-key (kbd "<escape>") 'keyboard-escape-quit)
+  ;; Make ESC quit
+  (global-set-key (kbd "<escape>") 'keyboard-escape-quit)
+
+  ;; Switching between frames of emacs in line with my common shortcuts
+  (global-set-key (kbd "C-s-<tab>") #'ns-next-frame)
 
 #+end_src
-
+** Enabling disabled commands
+#+begin_src emacs-lisp
+    (setq disabled-command-function nil)
+#+end_src
 ** Package initialization
 
 We use =straight.el= due to greater power and flexibility, especially and/or specifically for =org-roam-ui=. [[https://github.com/raxod502/straight.el][Link]].
@@ -135,13 +141,17 @@ This disables the built-in package manager from loading.
 #+end_src
 
 ** Tabs
-And tab bars which manage window configurations.
+And tab bars which manage window configurations. Make them in line with default MacOS shortcuts.
 #+begin_src emacs-lisp
   (tab-bar-mode)
+  (setq tab-bar-new-tab-choice "*scratch*")
 
-  (desktop-save-mode 1)
+  (global-set-key (kbd "s-t") #'tab-bar-new-tab)
+  (global-set-key (kbd "s-T") #'tab-undo)
 
-    ;;  (setq tab-bar-select-tab-modifiers )
+  (global-set-key (kbd "s-w") #'tab-close)
+  (setq tab-bar-close-last-tab-choice 'delete-frame)
+
 #+end_src
 
 ** Misc
@@ -198,6 +208,8 @@ Makes it so yanking/typing over a selected region of text deletes what is alread
 
   (show-paren-mode 1)
   (setq show-paren-delay 0)
+
+  (use-package paredit)
 
 #+end_src
 
@@ -408,13 +420,6 @@ A better pdf reader for emacs, here specifically for use with org-noter
 
 #+end_src
 
-** Minor extensions
-*** TODO Org-noter
-Taking pdf notes org-mode that sync to inside the document.
-#+begin_src emacs-lisp
-  (use-package org-noter)
-#+end_src
-
 ** Exporting
 Disable exporting broken html links. Required for =anki-editor= to be able to export roam links.
 Very suboptimal, should maybe look into extending org to allow replacing =id= links in exporting
@@ -423,7 +428,13 @@ if it lacks a name, or use the hyperlink itself in that case.
 #+begin_src emacs-lisp
   (setq org-export-with-broken-links t)
 #+end_src
-  
+
+** Org-ref
+#+begin_src emacs-lisp
+  (use-package org-ref)
+#+end_src
+
+
 * Org-roam
 ** Base
 #+begin_src emacs-lisp
@@ -486,26 +497,66 @@ A package which allows one to view their nodes as a graph, using a web interface
     (xwidget-webkit-browse-url "http://localhost:35901"))
 
 #+end_src
-** TODO org-roam-bibtex
+** citations
+Adapted from [[https://github.com/tmalsburg/helm-bibtex][here]].
+
+#+begin_src emacs-lisp :tangle no
+  (setq my/bibliography-path "~/Documents/org/library.bib")
+  (setq my/pdf-path "~/Documents/pdfs/")
+  (setq my/bibliography-notes "~/Documents/org/literature/")
+
+  (use-package ivy-bibtex
+    :config
+    (setq bibtex-completion-notes-path my/bibliography-notes)
+    (setq bibtex-completion-bibliography my/bibliography-path))
+
+  (use-package org-roam-bibtex
+    :after (org-roam)
+    :hook (org-roam-mode . org-roam-bibtex-mode)
+    :config
+    (require 'org-ref)
+    (setq org-roam-bibtex-preformat-keywords
+	  '("=key=" "title" "url" "file" "author-or-editor" "keywords"))
+    (setq orb-templates
+	  '(("r" "ref" plain (function org-roam-capture--get-point)
+	     ""
+	     :file-name "${slug}"
+	     :head "#+TITLE: ${=key=}: ${title}\n#+ROAM_KEY: ${ref}
+
+  - tags ::
+  - keywords :: ${keywords}
+
+  \n* ${title}\n  :PROPERTIES:\n  :Custom_ID: ${=key=}\n  :URL: ${url}\n  :AUTHOR: ${author-or-editor}\n  :NOTER_DOCUMENT: %(orb-process-file-field \"${=key=}\")\n  :NOTER_PAGE: \n  :END:\n\n"
+
+	     :unnarrowed t))))
+
+#+end_src
+
 ** Org-roam templates
 The default template (and as such what we will set our templates list for now) is:
 #+begin_src emacs-lisp
 
-  (setq org-roam-capture-templates
-    '(("d" "default" plain
-       "%?"
-       :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n")
-       :unnarrowed t)
-      ("p" "project" plain "* Goals\n\n%?\n\n* Tasks\n\n** TODO Add initial tasks\n\n* Dates\n\n"
-              :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n#+filetags: Project")
+    (setq org-roam-capture-templates
+      '(("d" "default" plain
+         "%?"
+         :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n")
+         :unnarrowed t)
+        ("p" "project" plain "* Goals\n\n%?\n\n* Tasks\n\n** TODO Add initial tasks\n\n* Dates\n\n"
+                :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n#+filetags: Project")
+                :unnarrowed t)
+        ("b" "book notes" plain
+              "\n* Source\n\nAuthor: %^{Author}\nTitle: ${title}\nYear: %^{Year}\n\n* Summary\n\n%?"
+              :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n#+filetags: Book")
               :unnarrowed t)
-      ("b" "book notes" plain
-            "\n* Source\n\nAuthor: %^{Author}\nTitle: ${title}\nYear: %^{Year}\n\n* Summary\n\n%?"
-            :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n#+filetags: Book")
-            :unnarrowed t)
-      ("f" "Flashcard" plain (file "~/Documents/repos/org/roam/templates/AnkiNoteTemplate.org")
-       :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n")
-         :unnarrowed t)))
+        ("f" "Flashcard" plain (file "~/Documents/repos/org/roam/templates/AnkiNoteTemplate.org")
+         :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n")
+           :unnarrowed t)
+      ("r" "bibliography reference" plain
+       "%?
+  %^{author} published %^{entry-type} in %^{date}: fullcite:%\\1."
+       :target
+       (file+head "references/${citekey}.org" "#+title: ${title}\n")
+       :unnarrowed t)))
 
 #+end_src
 
@@ -521,7 +572,6 @@ A library for org-mode stuff.
 
 #+begin_src emacs-lisp
 
-  ()
   (use-package vulpea)
 
 #+end_src
@@ -736,18 +786,6 @@ The first function
 
 
 * Languages
-** Eglot (LSP)
-A more sensible and minimal LSP implementation. Using for now, might switch back over at lsp-mode at some point.
-#+begin_src emacs-lisp
-
-  (use-package project)
-  (use-package eglot)
-
-  (add-hook 'python-mode-hook 'eglot-ensure)
-  ;;(add-hook 'LaTeX-mode-hook 'eglot-ensure)
-
-#+end_src
-
 ** Python
 #+begin_src emacs-lisp
 
@@ -757,13 +795,7 @@ A more sensible and minimal LSP implementation. Using for now, might switch back
     :custom
     ;; NOTE: Set these if Python 3 is called "python3" on your system!
     (python-shell-interpreter "python3"))
-
-    ;; Leaving the debugging stuff out for now.
-    ;; (dap-python-executable "python3")
-    ;; (dap-python-debugger 'debugpy)
-    ;; :config
-    ;; (require 'dap-python))
-
+  
 #+end_src
 
 ** LaTeX
@@ -782,7 +814,7 @@ Firstly, we must set a header for our org files to use.
       :ensure auctex)
     (setq font-latex-fontify-script nil)
 
-    (setq latex-run-command "xelatex")
+    (setq latex-run-command "lualatex")
 
     ;; Use pdf-tools to open PDF files
     (setq TeX-view-program-selection '((output-pdf "PDF Tools"))
@@ -832,6 +864,17 @@ Firstly, we must set a header for our org files to use.
 
 
 #+end_src
+** Eglot (LSP)
+A more sensible and minimal LSP implementation. Using for now, might switch back over at lsp-mode at some point.
+#+begin_src emacs-lisp
+
+  (use-package project)
+  (use-package eglot)
+
+  (add-hook 'python-mode-hook 'eglot-ensure)
+  ;;(add-hook 'LaTeX-mode-hook 'eglot-ensure)
+
+#+end_src
 
 
 * Programming stuff
@@ -865,7 +908,7 @@ Snippets, configuration stolen from [[https://gist.github.com/karthink/7d89df35e
 
 #+end_src
 
-n** company-mode
+** company-mode
 Text completion framework. Seems to be working good.
 #+begin_src emacs-lisp :tangle no
 
@@ -883,4 +926,6 @@ Text completion framework. Seems to be working good.
     ;; (company-tng-mode)
 
 #+end_src
+
+
 

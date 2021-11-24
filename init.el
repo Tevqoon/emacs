@@ -32,6 +32,11 @@
 ;; Make ESC quit
 (global-set-key (kbd "<escape>") 'keyboard-escape-quit)
 
+;; Switching between frames of emacs in line with my common shortcuts
+(global-set-key (kbd "C-s-<tab>") #'ns-next-frame)
+
+(setq disabled-command-function nil)
+
 ;; Initialize package sources
 (defvar bootstrap-version)
   (let ((bootstrap-file
@@ -98,10 +103,13 @@
   :custom ((doom-modeline-height 12)))
 
 (tab-bar-mode)
+(setq tab-bar-new-tab-choice "*scratch*")
 
-(desktop-save-mode 1)
+(global-set-key (kbd "s-t") #'tab-bar-new-tab)
+(global-set-key (kbd "s-T") #'tab-undo)
 
-  ;;  (setq tab-bar-select-tab-modifiers )
+(global-set-key (kbd "s-w") #'tab-close)
+(setq tab-bar-close-last-tab-choice 'delete-frame)
 
 (require 'cl-lib)
 (defun my-keyboard-escape-quit (fun &rest args)
@@ -136,6 +144,8 @@
 
 (show-paren-mode 1)
 (setq show-paren-delay 0)
+
+(use-package paredit)
 
 (winner-mode 1)
 
@@ -277,9 +287,9 @@
 
 (add-hook 'org-mode-hook (lambda () (add-hook 'after-save-hook #'efs/org-babel-tangle-config)))
 
-(use-package org-noter)
-
 (setq org-export-with-broken-links t)
+
+(use-package org-ref)
 
 (use-package org-roam
   :init
@@ -333,22 +343,27 @@
   (xwidget-webkit-browse-url "http://localhost:35901"))
 
 (setq org-roam-capture-templates
-  '(("d" "default" plain
-     "%?"
-     :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n")
-     :unnarrowed t)
-    ("p" "project" plain "* Goals\n\n%?\n\n* Tasks\n\n** TODO Add initial tasks\n\n* Dates\n\n"
-            :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n#+filetags: Project")
+    '(("d" "default" plain
+       "%?"
+       :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n")
+       :unnarrowed t)
+      ("p" "project" plain "* Goals\n\n%?\n\n* Tasks\n\n** TODO Add initial tasks\n\n* Dates\n\n"
+              :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n#+filetags: Project")
+              :unnarrowed t)
+      ("b" "book notes" plain
+            "\n* Source\n\nAuthor: %^{Author}\nTitle: ${title}\nYear: %^{Year}\n\n* Summary\n\n%?"
+            :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n#+filetags: Book")
             :unnarrowed t)
-    ("b" "book notes" plain
-          "\n* Source\n\nAuthor: %^{Author}\nTitle: ${title}\nYear: %^{Year}\n\n* Summary\n\n%?"
-          :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n#+filetags: Book")
-          :unnarrowed t)
-    ("f" "Flashcard" plain (file "~/Documents/repos/org/roam/templates/AnkiNoteTemplate.org")
-     :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n")
-       :unnarrowed t)))
+      ("f" "Flashcard" plain (file "~/Documents/repos/org/roam/templates/AnkiNoteTemplate.org")
+       :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n")
+         :unnarrowed t)
+    ("r" "bibliography reference" plain
+     "%?
+%^{author} published %^{entry-type} in %^{date}: fullcite:%\\1."
+     :target
+     (file+head "references/${citekey}.org" "#+title: ${title}\n")
+     :unnarrowed t)))
 
-()
 (use-package vulpea)
 
 (add-to-list 'org-tags-exclude-from-inheritance "project")
@@ -475,24 +490,12 @@ tasks."
   (interactive)
   (mapc #'anki/push-filename (anki/flashcards-files)))
 
-(use-package project)
-(use-package eglot)
-
-(add-hook 'python-mode-hook 'eglot-ensure)
-;;(add-hook 'LaTeX-mode-hook 'eglot-ensure)
-
 (use-package python-mode
   :hook (python-mode . eglot)
   ;; :hook (python-mode . lsp)
   :custom
   ;; NOTE: Set these if Python 3 is called "python3" on your system!
   (python-shell-interpreter "python3"))
-
-  ;; Leaving the debugging stuff out for now.
-  ;; (dap-python-executable "python3")
-  ;; (dap-python-debugger 'debugpy)
-  ;; :config
-  ;; (require 'dap-python))
 
 (setq org-latex-packages-alist '(("" "/Users/jure/.emacs.d/defaults/js" t)))
 ;;(setq org-latex-packages-alist nil)
@@ -501,7 +504,7 @@ tasks."
   :ensure auctex)
 (setq font-latex-fontify-script nil)
 
-(setq latex-run-command "xelatex")
+(setq latex-run-command "lualatex")
 
 ;; Use pdf-tools to open PDF files
 (setq TeX-view-program-selection '((output-pdf "PDF Tools"))
@@ -532,6 +535,12 @@ tasks."
 (setq xenops-reveal-on-entry t)
 (setq xenops-math-image-scale-factor 2.0)
 
+(use-package project)
+(use-package eglot)
+
+(add-hook 'python-mode-hook 'eglot-ensure)
+;;(add-hook 'LaTeX-mode-hook 'eglot-ensure)
+
 (use-package flycheck)
 (global-flycheck-mode)
 
@@ -547,3 +556,15 @@ tasks."
 (yas-global-mode 1)
 
 (use-package yasnippet-snippets)
+(custom-set-variables
+ ;; custom-set-variables was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ '(warning-suppress-types '((websocket))))
+(custom-set-faces
+ ;; custom-set-faces was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ )
