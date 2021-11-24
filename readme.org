@@ -1,6 +1,10 @@
 #+TITLE: JS's emacs config
 #+PROPERTY: header-args :mkdirp yes :tangle ./init.el :results value silent
 
+* Intro
+This file is the code. Using =org-babel-tangle= it gets converted to an =init.el= file upon every save,
+as is documented later.
+
 * General configs
 ** Initialization
 #+begin_src emacs-lisp
@@ -107,7 +111,7 @@ This disables the built-in package manager from loading.
 
   (defun bjm-swiper-recenter (&rest args)
     "recenter display after swiper"
-    (recenter)q
+    (recenter)
     )
   (advice-add 'swiper :after #'bjm-swiper-recenter)
 
