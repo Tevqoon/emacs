@@ -1,0 +1,58 @@
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{js}[2021/11/14 js]
+
+\RequirePackage[slovene]{babel}
+\RequirePackage[utf8]{inputenc}
+\RequirePackage[T1]{fontenc}
+\usepackage{lmodern}
+
+\RequirePackage[shortlabels]{enumitem}
+\RequirePackage{amsmath}
+\RequirePackage{amsthm}
+\RequirePackage{mathrsfs}
+\RequirePackage{amssymb}
+\RequirePackage{mathtools}
+\RequirePackage{etoolbox}
+\RequirePackage{esvect}
+
+\RequirePackage{float}
+\RequirePackage{graphicx}
+\RequirePackage{subcaption}
+\RequirePackage{wrapfig}
+\RequirePackage{multirow}
+\RequirePackage{array}
+\renewcommand{\arraystretch}{1.4}
+\setcounter{MaxMatrixCols}{20}
+
+\providecommand{\N}{\mathbb{N}}
+\providecommand{\Z}{\mathbb{Z}}
+\providecommand{\Q}{\mathbb{Q}}
+\providecommand{\R}{\mathbb{R}}
+\providecommand{\C}{\mathbb{C}}
+\providecommand{\F}{\mathbb{F}}
+
+\DeclareMathOperator{\id}{id}
+\DeclareMathOperator{\Sim}{Sim}
+\DeclareMathOperator{\rang}{rang}
+\DeclareMathOperator{\sgn}{sgn}
+\DeclareMathOperator{\im}{im}
+\DeclareMathOperator{\Lin}{Lin}
+\DeclareMathOperator{\enm}{End}
+\DeclareMathOperator{\aut}{Aut}
+\DeclareMathOperator{\Int}{Int}
+\DeclareMathOperator{\grad}{grad}
+\DeclareMathOperator{\Cl}{Cl}
+\DeclareMathOperator{\Fr}{Fr}
+\DeclareMathOperator{\dom}{dom}
+\DeclareMathOperator{\cod}{cod}
+
+
+\providecommand{\pot}{\mathcal{P}}
+\providecommand{\rel}[1]{\mathrel{#1}}
+\providecommand{\set}[1]{\left\{#1\right\}}
+\providecommand{\setb}[2]{\left\{#1~\middle\vert~#2\right\}}
+\providecommand{\abs}[1]{\left\lvert #1\right\rvert}
+\providecommand{\norm}[1]{\left\lVert #1\right\rVert}
+\providecommand{\floor}[1]{\left\lfloor #1\right\rfloor}
+\providecommand{\eval}[3]{\left. #1\right|_{#2}^{#3}}
+\providecommand{\skl}[1]{\left\langle #1\right\rangle}
