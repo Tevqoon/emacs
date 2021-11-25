@@ -5,6 +5,7 @@
 This file is the code. Using =org-babel-tangle= it gets converted to an =init.el= file upon every save,
 as is documented later.
 
+
 * General configs
 ** Initialization
 #+begin_src emacs-lisp
@@ -46,10 +47,12 @@ as is documented later.
   (global-set-key (kbd "C-s-<tab>") #'ns-next-frame)
 
 #+end_src
+
 ** Enabling disabled commands
 #+begin_src emacs-lisp
     (setq disabled-command-function nil)
 #+end_src
+
 ** Package initialization
 
 We use =straight.el= due to greater power and flexibility, especially and/or specifically for =org-roam-ui=. [[https://github.com/raxod502/straight.el][Link]].
