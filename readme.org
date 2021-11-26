@@ -384,7 +384,7 @@ A better pdf reader for emacs, here specifically for use with org-noter
 #+begin_src emacs-lisp
 
   (setq org-capture-templates
-        `(("t" "Task" entry (file "~/Documents/org/20211117164414-inbox.org")
+        `(("t" "Task" entry (file "~/Documents/org/20211117183951-tasks.org")
            "* TODO %?\n  %U\n  %a\n  %i" :empty-lines 1)))
 
   (define-key global-map (kbd "M-i")
@@ -418,11 +418,11 @@ A better pdf reader for emacs, here specifically for use with org-noter
   ;; Automatically tangle our Emacs.org config file when we save it
   (defun efs/org-babel-tangle-config ()
     (when (string-equal (buffer-file-name)
-                        (expand-file-name "~/.emacs.d/init.org"))
+                        (expand-file-name "~/.emacs.d/readme.org"))
       ;; Dynamic scoping to the rescue
       (let ((org-confirm-babel-evaluate nil))
         (org-babel-tangle))))
-  
+
   (add-hook 'org-mode-hook (lambda () (add-hook 'after-save-hook #'efs/org-babel-tangle-config)))
 
 #+end_src
@@ -871,6 +871,10 @@ Firstly, we must set a header for our org files to use.
 
 
 #+end_src
+** Racket
+#+begin_src emacs-lisp
+(use-package racket-mode)
+#+end_src
 ** Eglot (LSP)
 A more sensible and minimal LSP implementation. Using for now, might switch back over at lsp-mode at some point.
 #+begin_src emacs-lisp
@@ -933,6 +937,9 @@ Text completion framework. Seems to be working good.
     ;; (company-tng-mode)
 
 #+end_src
+
+
+
 
 
 

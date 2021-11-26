@@ -257,7 +257,7 @@
                 ((org-agenda-overriding-header "Next Tasks")))))))
 
 (setq org-capture-templates
-      `(("t" "Task" entry (file "~/Documents/org/20211117164414-inbox.org")
+      `(("t" "Task" entry (file "~/Documents/org/20211117183951-tasks.org")
          "* TODO %?\n  %U\n  %a\n  %i" :empty-lines 1)))
 
 (define-key global-map (kbd "M-i")
@@ -280,7 +280,7 @@
 ;; Automatically tangle our Emacs.org config file when we save it
 (defun efs/org-babel-tangle-config ()
   (when (string-equal (buffer-file-name)
-                      (expand-file-name "~/.emacs.d/init.org"))
+                      (expand-file-name "~/.emacs.d/readme.org"))
     ;; Dynamic scoping to the rescue
     (let ((org-confirm-babel-evaluate nil))
       (org-babel-tangle))))
@@ -535,6 +535,8 @@ tasks."
 (setq xenops-reveal-on-entry t)
 (setq xenops-math-image-scale-factor 2.0)
 
+(use-package racket-mode)
+
 (use-package project)
 (use-package eglot)
 
@@ -556,15 +558,3 @@ tasks."
 (yas-global-mode 1)
 
 (use-package yasnippet-snippets)
-(custom-set-variables
- ;; custom-set-variables was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- '(warning-suppress-types '((emacs) (websocket) (websocket))))
-(custom-set-faces
- ;; custom-set-faces was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- )

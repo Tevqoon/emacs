@@ -1,0 +1,17 @@
+# -*- mode: snippet -*-
+# name: Anki Flashcard
+# key: Anki  
+# --
+
+* ${1:Item}
+:PROPERTIES:
+:ANKI_NOTE_TYPE: Basic
+:ANKI_DECK: Default
+:ANKI_TAGS: ${2:Analiza}
+:END:
+
+** Front
+$1
+
+** Back
+$0
