@@ -9,42 +9,37 @@ as is documented later.
 * General configs
 ** Initialization
 #+begin_src emacs-lisp
-  ;; (setq debug-on-error t)
+    ;; (setq debug-on-error t)
 
-  (setq inhibit-startup-message t)
+    (setq inhibit-startup-message t)
 
-  (setq frame-resize-pixelwise t)
-  (tool-bar-mode -1)          ; Disable the toolbar
-  (tooltip-mode -1)           ; Disable tooltips
-  (set-fringe-mode 5)        ; Give some breathing room
+    (setq frame-resize-pixelwise t)
+    (tool-bar-mode -1)          ; Disable the toolbar
+    (tooltip-mode -1)           ; Disable tooltips
+    (set-fringe-mode 5)        ; Give some breathing room
 
-  (menu-bar-mode -1)            ; Disable the menu
+    (menu-bar-mode -1)            ; Disable the menu
 
-  (setq-default cursor-type 'bar)
+    (setq-default cursor-type 'bar)
 
-  (column-number-mode) ; Add column numbers to modeline
-  (global-display-line-numbers-mode t) ; Add line numbers
+    (column-number-mode) ; Add column numbers to modeline
+    (global-display-line-numbers-mode t) ; Add line numbers
 
-  ;;Disable line numbers for some modes
-  (dolist (mode '(org-mode hook
-                           term-mode-hook
-                           shell-mode-hook
-                           eshell-mode-hook
-                           xwidget-webkit-mode-hook))
-    (add-hook mode (lambda () (display-line-numbers-mode 0))))
+    ;;Disable line numbers for some modes
+    (dolist (mode '(term-mode-hook
+                    shell-mode-hook
+                    eshell-mode-hook
+                    xwidget-webkit-mode-hook
+                    pdf-view-mode-hook))
+      (add-hook mode (lambda () (display-line-numbers-mode 0))))
 
-  (set-face-attribute 'default nil :height 140)
+    (set-face-attribute 'default nil :height 140)
 
-  ;; Set right option key to act nicely to enter symbol layers
-  (setq ns-alternate-modifier 'meta)
-  (setq ns-right-alternate-modifier 'none)
-  (setq ns-right-command-modifier 'hyper)
+    ;; Make ESC quit
+    (global-set-key (kbd "<escape>") 'keyboard-escape-quit)
 
-  ;; Make ESC quit
-  (global-set-key (kbd "<escape>") 'keyboard-escape-quit)
-
-  ;; Switching between frames of emacs in line with my common shortcuts
-  (global-set-key (kbd "C-s-<tab>") #'ns-next-frame)
+    ;; Switching between frames of emacs in line with my common shortcuts
+    (global-set-key (kbd "C-s-<tab>") #'ns-next-frame)
 
 #+end_src
 
@@ -95,16 +90,25 @@ This disables the built-in package manager from loading.
   (use-package doom-themes
     :defer t
     :init (load-theme 'doom-solarized-light t))
-
-  (defun my/apply-theme (appearance)
-    "Load theme, taking current system APPEARANCE into consideration."
-    (mapc #'disable-theme custom-enabled-themes)
-    (pcase appearance
-      ('light (load-theme 'doom-solarized-light t))
-      ('dark (load-theme 'doom-solarized-dark-high-contrast t))))
   
-  (add-hook 'ns-system-appearance-change-functions #'my/apply-theme)
+#+end_src
 
+** Mac specific
+#+begin_src emacs-lisp
+   (defun my/apply-theme (appearance)
+          "Load theme, taking current system APPEARANCE into consideration."
+          (mapc #'disable-theme custom-enabled-themes)
+          (pcase appearance
+            ('light (load-theme 'doom-solarized-light t))
+            ('dark (load-theme 'doom-dracula t))))
+
+  (if (eq window-system 'ns)
+      (progn
+        (setq ns-alternate-modifier 'meta)
+        (setq ns-right-alternate-modifier 'none)
+        (setq ns-right-command-modifier 'hyper)
+        (add-hook 'ns-system-appearance-change-functions #'my/apply-theme)
+        ))
 #+end_src
 
 ** Autocompletion stuff
@@ -888,7 +892,13 @@ A more sensible and minimal LSP implementation. Using for now, might switch back
 #+end_src
 
 
-* Programming stuff
+* Programming/editing stuff
+** Idle highlight mode
+#+begin_src emacs-lisp
+    (use-package idle-highlight-mode
+      :config (setq idle-highlight-idle-time 0.2)
+      :hook (prog-mode . idle-highlight-mode))
+#+end_src
 ** Flycheck
 Syntax checking, seems to just work, so to speak.
 #+begin_src emacs-lisp
@@ -938,8 +948,30 @@ Text completion framework. Seems to be working good.
 
 #+end_src
 
+** Expand region
+#+begin_src emacs-lisp
 
+  (use-package expand-region)
+  (global-set-key (kbd "s-f") 'er/expand-region)
 
+  #+end_src
+  
+** Multiple cursors
+#+begin_src emacs-lisp
 
+  (use-package multiple-cursors)
+  (global-set-key (kbd "s-<down>") 'mc/mark-next-like-this)
+  (global-set-key (kbd "s-<up>") 'mc/mark-previous-like-this)
 
+  (global-set-key (kbd "s-M-<up>") 'mc/unmark-next-like-this)
+  (global-set-key (kbd "s-M-<down>") 'mc/unmark-previous-like-this)
+  
+  (global-set-key (kbd "s-d") 'mc/mark-all-dwim)
+
+  ;; Makes it so only =C-g= quits.
+  (define-key mc/keymap (kbd "<return>") nil)
+
+  (global-set-key (kbd "s-<mouse-1>") 'mc/add-cursor-on-click)
+
+#+end_src
 

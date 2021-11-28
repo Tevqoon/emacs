@@ -15,19 +15,14 @@
 (global-display-line-numbers-mode t) ; Add line numbers
 
 ;;Disable line numbers for some modes
-(dolist (mode '(org-mode hook
-                         term-mode-hook
-                         shell-mode-hook
-                         eshell-mode-hook
-                         xwidget-webkit-mode-hook))
+(dolist (mode '(term-mode-hook
+                shell-mode-hook
+                eshell-mode-hook
+                xwidget-webkit-mode-hook
+                pdf-view-mode-hook))
   (add-hook mode (lambda () (display-line-numbers-mode 0))))
 
 (set-face-attribute 'default nil :height 140)
-
-;; Set right option key to act nicely to enter symbol layers
-(setq ns-alternate-modifier 'meta)
-(setq ns-right-alternate-modifier 'none)
-(setq ns-right-command-modifier 'hyper)
 
 ;; Make ESC quit
 (global-set-key (kbd "<escape>") 'keyboard-escape-quit)
@@ -64,13 +59,19 @@
   :init (load-theme 'doom-solarized-light t))
 
 (defun my/apply-theme (appearance)
-  "Load theme, taking current system APPEARANCE into consideration."
-  (mapc #'disable-theme custom-enabled-themes)
-  (pcase appearance
-    ('light (load-theme 'doom-solarized-light t))
-    ('dark (load-theme 'doom-solarized-dark-high-contrast t))))
+        "Load theme, taking current system APPEARANCE into consideration."
+        (mapc #'disable-theme custom-enabled-themes)
+        (pcase appearance
+          ('light (load-theme 'doom-solarized-light t))
+          ('dark (load-theme 'doom-dracula t))))
 
-(add-hook 'ns-system-appearance-change-functions #'my/apply-theme)
+(if (eq window-system 'ns)
+    (progn
+      (setq ns-alternate-modifier 'meta)
+      (setq ns-right-alternate-modifier 'none)
+      (setq ns-right-command-modifier 'hyper)
+      (add-hook 'ns-system-appearance-change-functions #'my/apply-theme)
+      ))
 
 (use-package swiper)
 
@@ -543,6 +544,10 @@ tasks."
 (add-hook 'python-mode-hook 'eglot-ensure)
 ;;(add-hook 'LaTeX-mode-hook 'eglot-ensure)
 
+(use-package idle-highlight-mode
+  :config (setq idle-highlight-idle-time 0.2)
+  :hook (prog-mode . idle-highlight-mode))
+
 (use-package flycheck)
 (global-flycheck-mode)
 
@@ -558,3 +563,20 @@ tasks."
 (yas-global-mode 1)
 
 (use-package yasnippet-snippets)
+
+(use-package expand-region)
+(global-set-key (kbd "s-f") 'er/expand-region)
+
+(use-package multiple-cursors)
+(global-set-key (kbd "s-<down>") 'mc/mark-next-like-this)
+(global-set-key (kbd "s-<up>") 'mc/mark-previous-like-this)
+
+(global-set-key (kbd "s-M-<up>") 'mc/unmark-next-like-this)
+(global-set-key (kbd "s-M-<down>") 'mc/unmark-previous-like-this)
+
+(global-set-key (kbd "s-d") 'mc/mark-all-dwim)
+
+;; Makes it so only =C-g= quits.
+(define-key mc/keymap (kbd "<return>") nil)
+
+(global-set-key (kbd "s-<mouse-1>") 'mc/add-cursor-on-click)
