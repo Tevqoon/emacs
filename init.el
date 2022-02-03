@@ -153,7 +153,6 @@
       (message "Not a file visiting buffer!"))))
 
 (electric-pair-mode 1)
-(setq electric-pair-preserve-balance t)
 
 ;; Inhibit the symbol less so it can be used for snippets in org
 (add-function
@@ -338,6 +337,8 @@
          ("C-c n r" . org-roam-refile)
          ("C-c n g" . org-id-get-create)
          ("C-c n p" . anki-editor-push-notes)
+         ("C-c n P" . anki/push-all)
+         ("C-c n t" . org-roam-extract-subtree)
          :map org-mode-map
          ("C-M-i"    . completion-at-point))
   :config
@@ -401,129 +402,7 @@
 
 (use-package vulpea)
 
-(add-to-list 'org-tags-exclude-from-inheritance "project")
-
-(defun vulpea-project-p ()
-  "Return non-nil if current buffer has any todo entry.
-
-TODO entries marked as done are ignored, meaning the this
-function returns nil if current buffer contains only completed
-tasks."
-  (org-element-map                          ; (2)
-       (org-element-parse-buffer 'headline) ; (1)
-       'headline
-     (lambda (h)
-       (eq (org-element-property :todo-type h)
-           'todo))
-     nil 'first-match))                     ; (3)
-
-(setq prune/ignored-files
-      '("20211119122103-someday.org"
-        "20211117183951-tasks.org"
-        "20211117164414-inbox.org")) ; These should always have project tags.
-
-(defun vulpea-buffer-p ()
-  "Return non-nil if the currently visited buffer is a note."
-  (and buffer-file-name
-       (string-prefix-p
-        (expand-file-name (file-name-as-directory org-roam-directory))
-        (file-name-directory buffer-file-name))))
-
-(defun vulpea-project-update-tag ()
-  "Update PROJECT tag in the current buffer."
-  (when (and (not (member (buffer-name) prune/ignored-files))
-             (not (active-minibuffer-window))
-             (vulpea-buffer-p))
-    (save-excursion
-      (goto-char (point-min))
-      (let* ((tags (vulpea-buffer-tags-get))
-             (original-tags tags))
-        (if (vulpea-project-p)
-            (setq tags (cons "project" tags))
-          (setq tags (remove "project" tags)))
-
-        ;; cleanup duplicates
-        (setq tags (seq-uniq tags))
-
-        ;; update tags if changed
-        (when (or (seq-difference tags original-tags)
-                  (seq-difference original-tags tags))
-          (apply #'vulpea-buffer-tags-set tags))))))
-
-(add-hook 'find-file-hook #'vulpea-project-update-tag)
-(add-hook 'before-save-hook #'vulpea-project-update-tag)
-
-(defun vulpea-project-files ()
-  "Return a list of note files containing 'project' tag." ;
-  (seq-uniq
-   (seq-map
-    #'car
-    (org-roam-db-query
-     [:select [nodes:file]
-      :from tags
-      :left-join nodes
-      :on (= tags:node-id nodes:id)
-      :where (like tag (quote "%\"project\"%"))]))))
-
-(defun vulpea-agenda-files-update (&rest _)
-  "Update the value of `org-agenda-files'."
-  (setq org-agenda-files (vulpea-project-files)))
-
-(advice-add 'org-agenda :before #'vulpea-agenda-files-update)
-
 (use-package anki-editor)
-
-(add-to-list 'org-tags-exclude-from-inheritance "flashcards")
-
-(defun anki/flashcard-p ()
-  "Returns non-nil if the current buffer has a flash card"
-  (member "ANKI_NOTE_TYPE" (org-buffer-property-keys)))
-
-(defun anki/flashcards-update-tag ()
-  "Update flashcard tag in the current buffer"
-  (when (and (not (active-minibuffer-window))
-             (vulpea-buffer-p))
-    (save-excursion
-      (goto-char (point-min))
-      (let* ((tags (vulpea-buffer-tags-get))
-             (original-tags tags))
-        (if (anki/flashcard-p)
-            (setq tags (cons "flashcards" tags))
-          (setq tags (remove "flashcards" tags)))
-
-        ;; cleanup duplicates
-        (setq tags (seq-uniq tags))
-
-        ;; update tags if changed
-  (when (or (seq-difference tags original-tags)
-            (seq-difference original-tags tags))
-    (apply #'vulpea-buffer-tags-set tags))))))
-
-(add-hook 'find-file-hook #'anki/flashcards-update-tag)
-(add-hook 'before-save-hook #'anki/flashcards-update-tag)
-
-(defun anki/flashcards-files ()
-  "Return a list of note files containing 'project' tag." ;
-  (seq-uniq
-   (seq-map
-    #'car
-    (org-roam-db-query
-     [:select [nodes:file]
-      :from tags
-      :left-join nodes
-      :on (= tags:node-id nodes:id)
-      :where (like tag (quote "%\"flashcards\"%"))]))))
-
-(defun anki/push-filename (filename)
-  "Opens the file with filename as a temporary buffer and pushes its notes."
-  (save-excursion
-    (with-current-buffer (find-file-noselect filename)
-      (progn (anki-editor-push-notes)))))
-
-(defun anki/push-all ()
-  "Maps over the files with the flashcards tag and pushes them."
-  (interactive)
-  (mapc #'anki/push-filename (anki/flashcards-files)))
 
 (use-package deft
   :config
@@ -556,6 +435,110 @@ used as title."
                 "\\|^#\\+[[:alpha:]_]+:.*$" ;; org-mode metadata
                 "\\|^:PROPERTIES:\n\\(.+\n\\)+:END:\n"
                 "\\)"))
+
+(defun org/project-p ()
+  "Return non-nil if current buffer has any todo entry.
+
+TODO entries marked as done are ignored, meaning the this
+function returns nil if current buffer contains only completed
+tasks."
+  (org-element-map                          ; (2)
+       (org-element-parse-buffer 'headline) ; (1)
+       'headline
+     (lambda (h)
+       (eq (org-element-property :todo-type h)
+           'todo))
+     nil 'first-match))                     ; (3)
+
+(defun anki/flashcard-p ()
+  "Returns non-nil if the current buffer has a flash card"
+  (member "ANKI_NOTE_TYPE" (org-buffer-property-keys)))
+
+(setq prune/ignored-files
+          '("20211119122103-someday.org"
+            "20211117183951-tasks.org"
+            "20211117164414-inbox.org")) ; These should always have project tags.
+
+(setq tag-checkers (list (cons "project" 'org/project-p)
+                         (cons "flashcards" 'anki/flashcard-p)))
+
+(mapc (lambda (p) (add-to-list 'org-tags-exclude-from-inheritance (car p)))
+      tag-checkers)
+
+(defun vulpea-buffer-p ()
+  "Return non-nil if the currently visited buffer is a note."
+  (and buffer-file-name
+       (string-prefix-p
+        (expand-file-name (file-name-as-directory org-roam-directory))
+        (file-name-directory buffer-file-name))))
+
+(defun org-update-tag (tcpair)
+     "Update '(tag . checker) tag in the current buffer."
+     (when (and (not (member (buffer-name) prune/ignored-files))
+                (not (active-minibuffer-window))
+                (vulpea-buffer-p))
+       (save-excursion
+         (goto-char (point-min))
+         (let* ((tags (vulpea-buffer-tags-get))
+                (original-tags tags))
+           (if (funcall (cdr tcpair))
+               (setq tags (cons (car tcpair) tags))
+             (setq tags (remove (car tcpair) tags)))
+
+           ;; cleanup duplicates
+           (setq tags (seq-uniq tags))
+
+           ;; update tags if changed
+           (when (or (seq-difference tags original-tags)
+                     (seq-difference original-tags tags))
+             (apply #'vulpea-buffer-tags-set tags))))))
+
+(defun org-update-all-tags ()
+  (mapc #'org-update-tag tag-checkers))
+
+(add-hook 'find-file-hook #'org-update-all-tags)
+(add-hook 'before-save-hook #'org-update-all-tags)
+
+(defun org-project-files ()
+    "Return a list of note files containing 'project' tag." ;
+    (seq-uniq
+     (seq-map
+      #'car
+      (org-roam-db-query
+       [:select [nodes:file]
+	:from tags
+	:left-join nodes
+	:on (= tags:node-id nodes:id)
+	:where (like tag (quote "%\"project\"%"))]))))
+
+(defun anki/flashcards-files ()
+ "Return a list of note files containing flashcards tag." ;
+ (seq-uniq
+  (seq-map
+   #'car
+   (org-roam-db-query
+    [:select [nodes:file]
+     :from tags
+     :left-join nodes
+     :on (= tags:node-id nodes:id)
+     :where (like tag (quote "%\"flashcards\"%"))]))))
+
+(defun roam-agenda-files-update (&rest _)
+  "Update the value of `org-agenda-files'."
+  (setq org-agenda-files (org-project-files)))
+
+(advice-add 'org-agenda :before #'roam-agenda-files-update)
+
+(defun anki/push-filename (filename)
+  "Opens the file with filename as a temporary buffer and pushes its notes."
+  (save-excursion
+    (with-current-buffer (find-file-noselect filename)
+      (progn (anki-editor-push-notes)))))
+
+(defun anki/push-all ()
+  "Maps over the files with the flashcards tag and pushes them."
+  (interactive)
+  (mapc #'anki/push-filename (anki/flashcards-files)))
 
 (use-package python-mode
   :custom
