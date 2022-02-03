@@ -19,7 +19,8 @@
                 shell-mode-hook
                 eshell-mode-hook
                 xwidget-webkit-mode-hook
-                pdf-view-mode-hook))
+                pdf-view-mode-hook
+                racket-repl-mode-hook))
   (add-hook mode (lambda () (display-line-numbers-mode 0))))
 
 (set-face-attribute 'default nil :height 140)
@@ -73,13 +74,14 @@
       (add-hook 'ns-system-appearance-change-functions #'my/apply-theme)
       ))
 
-(use-package swiper)
+(use-package battery)
+(when (and battery-status-function
+       (not (string-match-p "N/A" 
+                (battery-format "%B"
+                        (funcall battery-status-function)))))
+  (display-battery-mode 1))
 
-(defun bjm-swiper-recenter (&rest args)
-  "recenter display after swiper"
-  (recenter)
-  )
-(advice-add 'swiper :after #'bjm-swiper-recenter)
+(use-package swiper)
 
 
 (use-package counsel)
@@ -97,13 +99,18 @@
 
 ;; Make counsel-switch-buffer the default buffer switcher
 (global-set-key (kbd "C-x b") 'counsel-switch-buffer)
+  (global-set-key (kbd "s-b") 'counsel-switch-buffer)
 
 (use-package all-the-icons)
 (use-package doom-modeline
   :init (doom-modeline-mode 1)
   :custom ((doom-modeline-height 12)))
 
-(tab-bar-mode)
+(setq display-time-default-load-average nil)
+(display-time-mode 1)
+
+(tab-bar-mode 1)
+
 (setq tab-bar-new-tab-choice "*scratch*")
 
 (global-set-key (kbd "s-t") #'tab-bar-new-tab)
@@ -111,6 +118,15 @@
 
 (global-set-key (kbd "s-w") #'tab-close)
 (setq tab-bar-close-last-tab-choice 'delete-frame)
+
+(global-set-key (kbd "C-s-f") #'toggle-frame-fullscreen)
+
+(global-set-key (kbd "s-o") #'other-window)
+
+(winner-mode 1)
+
+(global-set-key (kbd "H-<right>") #'winner-redo)
+(global-set-key (kbd "H-<left>") #'winner-undo)
 
 (require 'cl-lib)
 (defun my-keyboard-escape-quit (fun &rest args)
@@ -137,6 +153,7 @@
       (message "Not a file visiting buffer!"))))
 
 (electric-pair-mode 1)
+(setq electric-pair-preserve-balance t)
 
 ;; Inhibit the symbol less so it can be used for snippets in org
 (add-function
@@ -147,8 +164,6 @@
 (setq show-paren-delay 0)
 
 (use-package paredit)
-
-(winner-mode 1)
 
 (global-auto-revert-mode)
 
@@ -188,6 +203,8 @@
 (use-package forge)
 (setq auth-sources '("~/.authinfo"))
 
+(use-package git-timemachine)
+
 (use-package tablist)
 (use-package pdf-tools)
 (pdf-tools-install)
@@ -225,16 +242,27 @@
   :custom
   (org-bullets-bullet-list '("◉" "○" "●" "○" "●" "○" "●")))
 
-(defun efs/org-mode-visual-fill ()
-  (setq visual-fill-column-width 150
-        visual-fill-column-center-text t)
-  (visual-fill-column-mode 1))
+  (defun efs/org-mode-visual-fill ()
+    (setq visual-fill-column-width 150
+          visual-fill-column-center-text t)
+    (visual-fill-column-mode 1))
 
 (use-package visual-fill-column
   :hook (org-mode . efs/org-mode-visual-fill))
 
+;; utf-8 ;; 
+(setq locale-coding-system 'utf-8)
+(set-selection-coding-system 'utf-8)
+(prefer-coding-system 'utf-8)
+(set-default-coding-systems 'utf-8)
+(set-terminal-coding-system 'utf-8)
+(set-keyboard-coding-system 'utf-8)
+
 (setq org-todo-keywords
-      '((sequence "TODO(t)" "NEXT(n)" "HOLD(h)" "WAITING(w)" "|" "DONE(d!)" "CANCELLED(c!)")))
+      '((sequence "TODO(t)" "NEXT(n)" "EXPLORE(e)" "HOLD(h)" "WAITING(w)" "|" "DONE(d!)" "CANCELLED(c!)")))
+
+;; So it doesn't ruin window configs
+(setq org-agenda-window-setup 'current-window) 
 
 ;; Save org buffers after refiling
 (advice-add 'org-refile :after 'org-save-all-org-buffers)
@@ -268,8 +296,11 @@
 (org-babel-do-load-languages
  'org-babel-load-languages
  '((emacs-lisp . t)
-   (python . t)))
+   (python . t)
+   (C . t)
+   ))
 
+(setq org-babel-python-command "python3")
 
 (setq org-confirm-babel-evaluate nil)
 (require 'org-tempo)
@@ -277,6 +308,7 @@
 (add-to-list 'org-structure-template-alist '("sh" . "src shell"))
 (add-to-list 'org-structure-template-alist '("el" . "src emacs-lisp"))
 (add-to-list 'org-structure-template-alist '("py" . "src python"))
+(add-to-list 'org-structure-template-alist '("cs" . "src C"))
 
 ;; Automatically tangle our Emacs.org config file when we save it
 (defun efs/org-babel-tangle-config ()
@@ -304,6 +336,8 @@
          ("C-c n c" . org-roam-capture)
          ("C-c n d" . org-roam-dailies-map)
          ("C-c n r" . org-roam-refile)
+         ("C-c n g" . org-id-get-create)
+         ("C-c n p" . anki-editor-push-notes)
          :map org-mode-map
          ("C-M-i"    . completion-at-point))
   :config
@@ -335,7 +369,7 @@
    ;; :hook (after-init . org-roam-ui-mode)
     :config
     (setq org-roam-ui-sync-theme t)
-    (setq  org_roam-ui-follow nil)
+    (setq org_roam-ui-follow nil)
     (setq org-roam-ui-update-on-save t)
     (setq org-roam-ui-open-on-start nil))
 
@@ -386,7 +420,7 @@ tasks."
 (setq prune/ignored-files
       '("20211119122103-someday.org"
         "20211117183951-tasks.org"
-        "20211117164414-inbox.org"))
+        "20211117164414-inbox.org")) ; These should always have project tags.
 
 (defun vulpea-buffer-p ()
   "Return non-nil if the currently visited buffer is a note."
@@ -491,9 +525,39 @@ tasks."
   (interactive)
   (mapc #'anki/push-filename (anki/flashcards-files)))
 
+(use-package deft
+  :config
+  (setq deft-extensions '("org")
+        deft-directory org-roam-directory
+        deft-recursive t
+        deft-strip-summary-regexp ":PROPERTIES:\n\\(.+\n\\)+:END:\n"
+        deft-use-filename-as-title t)
+  :bind
+  ("C-c n e" . deft)
+  )
+
+(add-hook 'deft-mode-hook (lambda () (deft-refresh)))
+
+    (defun cm/deft-parse-title (file contents)
+  "Parse the given FILE and CONTENTS and determine the title.
+If `deft-use-filename-as-title' is nil, the title is taken to
+be the first non-empty line of the FILE.  Else the base name of the FILE is
+used as title."
+    (let ((begin (string-match "^#\\+[tT][iI][tT][lL][eE]: .*$" contents)))
+      (if begin
+          (string-trim (substring contents begin (match-end 0)) "#\\+[tT][iI][tT][lL][eE]: *" "[\n\t ]+")
+        (deft-base-filename file))))
+
+  (advice-add 'deft-parse-title :override #'cm/deft-parse-title)
+
+  (setq deft-strip-summary-regexp
+        (concat "\\("
+                "[\n\t]" ;; blank
+                "\\|^#\\+[[:alpha:]_]+:.*$" ;; org-mode metadata
+                "\\|^:PROPERTIES:\n\\(.+\n\\)+:END:\n"
+                "\\)"))
+
 (use-package python-mode
-  :hook (python-mode . eglot)
-  ;; :hook (python-mode . lsp)
   :custom
   ;; NOTE: Set these if Python 3 is called "python3" on your system!
   (python-shell-interpreter "python3"))
@@ -518,9 +582,7 @@ tasks."
            #'TeX-revert-document-buffer)
 
 (use-package cdlatex
-  :hook (LaTeX-mode . turn-on-cdlatex)
-  :bind (:map cdlatex-mode-map 
-              ("<tab>" . cdlatex-tab)))
+  :hook (LaTeX-mode . turn-on-cdlatex))
 
 (add-hook 'org-mode-hook #'turn-on-org-cdlatex)
 
@@ -534,22 +596,9 @@ tasks."
 (add-hook 'org-mode-hook (lambda () (add-hook 'xenops-mode-hook #'xenops-dwim)))
 
 (setq xenops-reveal-on-entry t)
-(setq xenops-math-image-scale-factor 2.0)
+(setq xenops-math-image-scale-factor 2.0) ; Macs be high res.
 
 (use-package racket-mode)
-
-(use-package project)
-(use-package eglot)
-
-(add-hook 'python-mode-hook 'eglot-ensure)
-;;(add-hook 'LaTeX-mode-hook 'eglot-ensure)
-
-(use-package idle-highlight-mode
-  :config (setq idle-highlight-idle-time 0.2)
-  :hook (prog-mode . idle-highlight-mode))
-
-(use-package flycheck)
-(global-flycheck-mode)
 
 (use-package aas
   :hook (LaTeX-mode . aas-activate-for-major-mode)

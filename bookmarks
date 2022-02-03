@@ -8,10 +8,10 @@
  (rear-context-string . "680B][@Tasks]]\n\n")
  (position . 403))
 ("org-capture-last-stored"
- (filename . "~/Documents/org/20211117164414-inbox.org")
- (front-context-string . "* TODO Look into")
- (rear-context-string . "680B][@Tasks]]\n\n")
- (position . 403))
+ (filename . "~/Documents/org/20220120035115-dinamicno_programiranje.org")
+ (front-context-string)
+ (rear-context-string . "o programiranje\n")
+ (position . 101))
 ("org-refile-last-stored"
  (filename . "~/Documents/org/20211117164414-inbox.org")
  (front-context-string . "** TODO Add bett")
