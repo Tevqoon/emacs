@@ -6,43 +6,58 @@ This file is the code. Using =org-babel-tangle= it gets converted to an =init.el
 as is documented later.
 
 
+
 * General configs
 ** Initialization
 #+begin_src emacs-lisp
-      ;; (setq debug-on-error t)
+  ;; (setq debug-on-error t)
 
-      (setq inhibit-startup-message t)
+  (setq inhibit-startup-message t)
 
-      (setq frame-resize-pixelwise t)
-      (tool-bar-mode -1)          ; Disable the toolbar
-      (tooltip-mode -1)           ; Disable tooltips
-      (set-fringe-mode 5)        ; Give some breathing room
+  (setq frame-resize-pixelwise t)
+  (tool-bar-mode -1)          ; Disable the toolbar
+  (tooltip-mode -1)           ; Disable tooltips
+  (set-fringe-mode 5)        ; Give some breathing room
 
-      (menu-bar-mode -1)            ; Disable the menu
+  (menu-bar-mode -1)            ; Disable the menu
 
-      (setq-default cursor-type 'bar)
+  (setq-default cursor-type 'bar)
 
-      (column-number-mode) ; Add column numbers to modeline
-      (global-display-line-numbers-mode t) ; Add line numbers
+  (column-number-mode) ; Add column numbers to modeline
 
-      ;;Disable line numbers for some modes
-      (dolist (mode '(term-mode-hook
-                      shell-mode-hook
-                      eshell-mode-hook
-                      xwidget-webkit-mode-hook
-                      pdf-view-mode-hook
-                      racket-repl-mode-hook))
-        (add-hook mode (lambda () (display-line-numbers-mode 0))))
+  ;; (global-display-line-numbers-mode t) ; Add line numbers
 
-      (set-face-attribute 'default nil :height 140)
+  ;;Disable line numbers for some modes
+  (dolist (mode '(term-mode-hook
+                  shell-mode-hook
+                  eshell-mode-hook
+                  xwidget-webkit-mode-hook
+                  pdf-view-mode-hook
+                  racket-repl-mode-hook))
+    (add-hook mode (lambda () (display-line-numbers-mode 0))))
 
-      ;; Make ESC quit
-      (global-set-key (kbd "<escape>") 'keyboard-escape-quit)
+  ;; Make ESC quitflashcards
+  (global-set-key (kbd "<escape>") 'keyboard-escape-quit)
 
-      ;; Switching between frames of emacs in line with my common shortcuts
-      (global-set-key (kbd "C-s-<tab>") #'ns-next-frame)
+  ;; Switching between frames of emacs in line with my common shortcuts
+  (global-set-key (kbd "C-s-<tab>") #'ns-next-frame)
 
 #+end_src
+
+** Padding etc
+
+#+begin_src emacs-lisp
+
+  (defun efs/org-mode-visual-fill ()
+    (setq visual-fill-column-width 110
+          visual-fill-column-center-text t))
+
+  (efs/org-mode-visual-fill)
+  (global-visual-fill-column-mode 1)
+
+  (use-package visual-fill-column)
+
+  #+end_src
 
 ** Enabling disabled commands
 #+begin_src emacs-lisp
@@ -85,6 +100,7 @@ This disables the built-in package manager from loading.
   (setq package-enable-at-startup nil)
 
 #+end_src
+
 ** Theme stuff
 #+begin_src emacs-lisp
 
@@ -145,6 +161,27 @@ This disables the built-in package manager from loading.
   ;; Make counsel-switch-buffer the default buffer switcher
   (global-set-key (kbd "C-x b") 'counsel-switch-buffer)
     (global-set-key (kbd "s-b") 'counsel-switch-buffer)
+
+#+end_src
+
+** Marginalia
+Adds descriptions to minibuffer completions
+
+#+begin_src emacs-lisp
+
+    ;; Enable richer annotations using the Marginalia package
+  (use-package marginalia
+    ;; Either bind `marginalia-cycle` globally or only in the minibuffer
+    :bind (("M-A" . marginalia-cycle)
+           :map minibuffer-local-map
+           ("M-A" . marginalia-cycle))
+
+    ;; The :init configuration is always executed (Not lazy!)
+    :init
+
+    ;; Must be in the :init section of use-package such that the mode gets
+    ;; enabled right away. Note that this forces loading the package.
+    (marginalia-mode))
 
 #+end_src
 
@@ -317,7 +354,9 @@ Automatically update buffers changed on disk.
 #+end_src
 
 ** Pdf-mode
+
 A better pdf reader for emacs, here specifically for use with org-noter
+
 #+begin_src emacs-lisp
 
   (use-package tablist)
@@ -327,6 +366,7 @@ A better pdf reader for emacs, here specifically for use with org-noter
 #+end_src
 
 ** Window-numbering
+
 #+begin_src emacs-lisp
 
   (setq winum-keymap
@@ -349,8 +389,10 @@ A better pdf reader for emacs, here specifically for use with org-noter
 #+end_src
 
 
+
 * Org mode
 ** General setup
+
 #+begin_src emacs-lisp
 
   (defun efs/org-mode-setup ()
@@ -360,21 +402,14 @@ A better pdf reader for emacs, here specifically for use with org-noter
   (use-package org
     :hook (org-mode . efs/org-mode-setup)
     :config
-    (setq org-ellipsis " ▾"))
+    (setq org-ellipsis " ▾")
+    (setq org-hide-emphasis-markers t))
 
   (use-package org-bullets
     :after org
     :hook (org-mode . org-bullets-mode)
     :custom
     (org-bullets-bullet-list '("◉" "○" "●" "○" "●" "○" "●")))
-
-    (defun efs/org-mode-visual-fill ()
-      (setq visual-fill-column-width 150
-            visual-fill-column-center-text t)
-      (visual-fill-column-mode 1))
-
-  (use-package visual-fill-column
-    :hook (org-mode . efs/org-mode-visual-fill))
 
   ;; utf-8 ;; 
   (setq locale-coding-system 'utf-8)
@@ -386,7 +421,71 @@ A better pdf reader for emacs, here specifically for use with org-noter
 
 #+end_src
 
+** Fonts
+
+Mostly from [[https://zzamboni.org/post/beautifying-org-mode-in-emacs/][here]].
+
+#+begin_src emacs-lisp
+
+    ;; Line spacing
+  (setq line-spacing 0.1)
+
+  (set-face-attribute 'default nil :height 140)
+
+  (let* (;(variable-tuple '(:font "Source Sans Pro"))
+         (variable-tuple '(:font "ETBembo"))
+         (base-font-color     (face-foreground 'default nil 'default))
+         (headline           `(:inherit default :weight bold :foreground ,base-font-color)))
+
+    (custom-theme-set-faces 'user
+                            `(org-level-8 ((t (,@headline ,@variable-tuple))))
+                            `(org-level-7 ((t (,@headline ,@variable-tuple))))
+                            `(org-level-6 ((t (,@headline ,@variable-tuple))))
+                            `(org-level-5 ((t (,@headline ,@variable-tuple))))
+                            `(org-level-4 ((t (,@headline ,@variable-tuple :height 1))))
+                            `(org-level-3 ((t (,@headline ,@variable-tuple :height 1.1))))
+                            `(org-level-2 ((t (,@headline ,@variable-tuple :height 1.25))))
+                            `(org-level-1 ((t (,@headline ,@variable-tuple :height 1.5))))
+                            `(org-document-title
+                              ((t (,@headline ,@variable-tuple :height 1.5 :underline nil))))))
+
+
+    (custom-theme-set-faces
+   'user
+   '(variable-pitch ((t (:family "ETBembo" :height 170)))) ;; For regular writing
+   '(fixed-pitch ((t (:family "Menlo" :height 140))))      ;; For code and stuff
+   
+   '(org-block ((t (:inherit fixed-pitch))))
+   '(org-code ((t (:inherit (shadow fixed-pitch)))))
+   '(org-document-info ((t (:foreground "dark orange"))))
+   '(org-document-info-keyword ((t (:inherit (shadow fixed-pitch)))))
+   '(org-indent ((t (:inherit (org-hide fixed-pitch)))))
+   '(org-link ((t (:foreground "royal blue" :underline t))))
+   '(org-meta-line ((t (:inherit (font-lock-comment-face fixed-pitch)))))
+   '(org-property-value ((t (:inherit fixed-pitch))) t)
+   '(org-special-keyword ((t (:inherit (font-lock-comment-face fixed-pitch)))))
+   '(org-table ((t (:inherit fixed-pitch :foreground "#83a598"))))
+   '(org-tag ((t (:inherit (shadow fixed-pitch) :weight bold :height 0.8))))
+   '(org-verbatim ((t (:inherit (shadow fixed-pitch))))))
+
+  (add-hook 'org-mode-hook 'variable-pitch-mode)
+
+ #+end_src
+
+** Pretty tables
+
+#+begin_src emacs-lisp
+
+  (use-package org-pretty-table
+    :straight
+      (:host github :repo "Fuco1/org-pretty-table" :branch "master" :files ("*.el" "out")))
+
+  (add-hook 'org-mode-hook (lambda () (org-pretty-table-mode)))
+
+#+end_src
+
 ** Agenda configuration
+
 #+begin_src emacs-lisp
 
   (setq org-todo-keywords
@@ -443,7 +542,10 @@ A better pdf reader for emacs, here specifically for use with org-noter
 
   (setq org-babel-python-command "python3")
 
-  (setq org-confirm-babel-evaluate nil)
+  (setq org-confirm-babel-evaluate nil
+        org-src-fontify-natively t
+        org-src-tab-acts-natively t)
+  ž
   (require 'org-tempo)
 
   (add-to-list 'org-structure-template-alist '("sh" . "src shell"))
@@ -504,7 +606,8 @@ if it lacks a name, or use the hyperlink itself in that case.
            ("C-c n P" . anki/push-all)
            ("C-c n t" . org-roam-extract-subtree)
            :map org-mode-map
-           ("C-M-i"    . completion-at-point))
+           ("C-M-i"    . completion-at-point)
+           ("C-c C-x C-l" . nil)) ; Built in LaTeX previews are an annoyance with xenops.
     :config
     (org-roam-setup))
 
@@ -625,7 +728,7 @@ A library for org-mode stuff.
 #+begin_src emacs-lisp
 
   (use-package vulpea)
-
+  
 #+end_src
 
 
@@ -652,6 +755,7 @@ Allows editing of anki flashcards directly in org files using tags.
     )
 
   (add-hook 'deft-mode-hook (lambda () (deft-refresh)))
+  ;; Refresh the looked at files on running deft, might be slow long-term
 
       (defun cm/deft-parse-title (file contents)
     "Parse the given FILE and CONTENTS and determine the title.
@@ -724,7 +828,7 @@ We also keep a list of checker functions and their respective tags.
                 "20211117183951-tasks.org"
                 "20211117164414-inbox.org")) ; These should always have project tags.
 
-    (setq tag-checkers (list (cons "project" 'org/project-p)
+    (setq tag-checkers (list (cons "project"    'org/project-p)
                              (cons "flashcards" 'anki/flashcard-p)))
 
 #+end_src
@@ -793,7 +897,7 @@ Doesn't fucking work, mind you.
 #+begin_src emacs-lisp :tangle no
 
   (defun org-get-all-with-tag (otag)
-    "Return a list of note files containing flashcards tag." ;
+    "Return a list of note files containing the given tag" ;
     (let ((ntag (concat "%\"" otag "\"%")))
       (seq-uniq
        (seq-map

@@ -12,7 +12,8 @@
 (setq-default cursor-type 'bar)
 
 (column-number-mode) ; Add column numbers to modeline
-(global-display-line-numbers-mode t) ; Add line numbers
+
+;; (global-display-line-numbers-mode t) ; Add line numbers
 
 ;;Disable line numbers for some modes
 (dolist (mode '(term-mode-hook
@@ -23,13 +24,20 @@
                 racket-repl-mode-hook))
   (add-hook mode (lambda () (display-line-numbers-mode 0))))
 
-(set-face-attribute 'default nil :height 140)
-
-;; Make ESC quit
+;; Make ESC quitflashcards
 (global-set-key (kbd "<escape>") 'keyboard-escape-quit)
 
 ;; Switching between frames of emacs in line with my common shortcuts
 (global-set-key (kbd "C-s-<tab>") #'ns-next-frame)
+
+(defun efs/org-mode-visual-fill ()
+  (setq visual-fill-column-width 110
+        visual-fill-column-center-text t))
+
+(efs/org-mode-visual-fill)
+(global-visual-fill-column-mode 1)
+
+(use-package visual-fill-column)
 
 (setq disabled-command-function nil)
 
@@ -100,6 +108,20 @@
 ;; Make counsel-switch-buffer the default buffer switcher
 (global-set-key (kbd "C-x b") 'counsel-switch-buffer)
   (global-set-key (kbd "s-b") 'counsel-switch-buffer)
+
+;; Enable richer annotations using the Marginalia package
+(use-package marginalia
+  ;; Either bind `marginalia-cycle` globally or only in the minibuffer
+  :bind (("M-A" . marginalia-cycle)
+         :map minibuffer-local-map
+         ("M-A" . marginalia-cycle))
+
+  ;; The :init configuration is always executed (Not lazy!)
+  :init
+
+  ;; Must be in the :init section of use-package such that the mode gets
+  ;; enabled right away. Note that this forces loading the package.
+  (marginalia-mode))
 
 (use-package all-the-icons)
 (use-package doom-modeline
@@ -233,21 +255,14 @@
 (use-package org
   :hook (org-mode . efs/org-mode-setup)
   :config
-  (setq org-ellipsis " ▾"))
+  (setq org-ellipsis " ▾")
+  (setq org-hide-emphasis-markers t))
 
 (use-package org-bullets
   :after org
   :hook (org-mode . org-bullets-mode)
   :custom
   (org-bullets-bullet-list '("◉" "○" "●" "○" "●" "○" "●")))
-
-  (defun efs/org-mode-visual-fill ()
-    (setq visual-fill-column-width 150
-          visual-fill-column-center-text t)
-    (visual-fill-column-mode 1))
-
-(use-package visual-fill-column
-  :hook (org-mode . efs/org-mode-visual-fill))
 
 ;; utf-8 ;; 
 (setq locale-coding-system 'utf-8)
@@ -256,6 +271,55 @@
 (set-default-coding-systems 'utf-8)
 (set-terminal-coding-system 'utf-8)
 (set-keyboard-coding-system 'utf-8)
+
+;; Line spacing
+(setq line-spacing 0.1)
+
+(set-face-attribute 'default nil :height 140)
+
+(let* (;(variable-tuple '(:font "Source Sans Pro"))
+       (variable-tuple '(:font "ETBembo"))
+       (base-font-color     (face-foreground 'default nil 'default))
+       (headline           `(:inherit default :weight bold :foreground ,base-font-color)))
+
+  (custom-theme-set-faces 'user
+                          `(org-level-8 ((t (,@headline ,@variable-tuple))))
+                          `(org-level-7 ((t (,@headline ,@variable-tuple))))
+                          `(org-level-6 ((t (,@headline ,@variable-tuple))))
+                          `(org-level-5 ((t (,@headline ,@variable-tuple))))
+                          `(org-level-4 ((t (,@headline ,@variable-tuple :height 1))))
+                          `(org-level-3 ((t (,@headline ,@variable-tuple :height 1.1))))
+                          `(org-level-2 ((t (,@headline ,@variable-tuple :height 1.25))))
+                          `(org-level-1 ((t (,@headline ,@variable-tuple :height 1.5))))
+                          `(org-document-title
+                            ((t (,@headline ,@variable-tuple :height 1.5 :underline nil))))))
+
+
+  (custom-theme-set-faces
+ 'user
+ '(variable-pitch ((t (:family "ETBembo" :height 170)))) ;; For regular writing
+ '(fixed-pitch ((t (:family "Menlo" :height 140))))      ;; For code and stuff
+
+ '(org-block ((t (:inherit fixed-pitch))))
+ '(org-code ((t (:inherit (shadow fixed-pitch)))))
+ '(org-document-info ((t (:foreground "dark orange"))))
+ '(org-document-info-keyword ((t (:inherit (shadow fixed-pitch)))))
+ '(org-indent ((t (:inherit (org-hide fixed-pitch)))))
+ '(org-link ((t (:foreground "royal blue" :underline t))))
+ '(org-meta-line ((t (:inherit (font-lock-comment-face fixed-pitch)))))
+ '(org-property-value ((t (:inherit fixed-pitch))) t)
+ '(org-special-keyword ((t (:inherit (font-lock-comment-face fixed-pitch)))))
+ '(org-table ((t (:inherit fixed-pitch :foreground "#83a598"))))
+ '(org-tag ((t (:inherit (shadow fixed-pitch) :weight bold :height 0.8))))
+ '(org-verbatim ((t (:inherit (shadow fixed-pitch))))))
+
+(add-hook 'org-mode-hook 'variable-pitch-mode)
+
+(use-package org-pretty-table
+  :straight
+    (:host github :repo "Fuco1/org-pretty-table" :branch "master" :files ("*.el" "out")))
+
+(add-hook 'org-mode-hook (lambda () (org-pretty-table-mode)))
 
 (setq org-todo-keywords
       '((sequence "TODO(t)" "NEXT(n)" "EXPLORE(e)" "HOLD(h)" "WAITING(w)" "|" "DONE(d!)" "CANCELLED(c!)")))
@@ -301,7 +365,10 @@
 
 (setq org-babel-python-command "python3")
 
-(setq org-confirm-babel-evaluate nil)
+(setq org-confirm-babel-evaluate nil
+      org-src-fontify-natively t
+      org-src-tab-acts-natively t)
+ž
 (require 'org-tempo)
 
 (add-to-list 'org-structure-template-alist '("sh" . "src shell"))
@@ -340,7 +407,8 @@
          ("C-c n P" . anki/push-all)
          ("C-c n t" . org-roam-extract-subtree)
          :map org-mode-map
-         ("C-M-i"    . completion-at-point))
+         ("C-M-i"    . completion-at-point)
+         ("C-c C-x C-l" . nil)) ; Built in LaTeX previews are an annoyance with xenops.
   :config
   (org-roam-setup))
 
@@ -416,6 +484,7 @@
   )
 
 (add-hook 'deft-mode-hook (lambda () (deft-refresh)))
+;; Refresh the looked at files on running deft, might be slow long-term
 
     (defun cm/deft-parse-title (file contents)
   "Parse the given FILE and CONTENTS and determine the title.
@@ -459,7 +528,7 @@ tasks."
             "20211117183951-tasks.org"
             "20211117164414-inbox.org")) ; These should always have project tags.
 
-(setq tag-checkers (list (cons "project" 'org/project-p)
+(setq tag-checkers (list (cons "project"    'org/project-p)
                          (cons "flashcards" 'anki/flashcard-p)))
 
 (mapc (lambda (p) (add-to-list 'org-tags-exclude-from-inheritance (car p)))

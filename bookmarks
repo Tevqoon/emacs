@@ -8,10 +8,10 @@
  (rear-context-string . "680B][@Tasks]]\n\n")
  (position . 403))
 ("org-capture-last-stored"
- (filename . "~/Documents/org/20220203164932-bisection.org")
- (front-context-string . "\nEverybody knows")
- (rear-context-string . "itle: Bisection\n")
- (position . 87))
+ (filename . "~/Documents/org/20220203232924-smooth_manifold.org")
+ (front-context-string)
+ (rear-context-string . "Smooth manifold\n")
+ (position . 93))
 ("org-refile-last-stored"
  (filename . "~/Documents/org/20211117164414-inbox.org")
  (front-context-string . "** TODO Add bett")
