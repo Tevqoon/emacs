@@ -26,6 +26,7 @@ as is documented later.
   (column-number-mode) ; Add column numbers to modeline
 
   ;; (global-display-line-numbers-mode t) ; Add line numbers
+  ;; No line numbers for now fuck that
 
   ;;Disable line numbers for some modes
   (dolist (mode '(term-mode-hook
@@ -42,6 +43,9 @@ as is documented later.
   ;; Switching between frames of emacs in line with my common shortcuts
   (global-set-key (kbd "C-s-<tab>") #'ns-next-frame)
 
+  (setq custom-file "~/.emacs.d/custom.el") ; Separate custom file since we retangle =init.el= often.
+  (load custom-file)
+
 #+end_src
 
 ** Padding etc
@@ -49,13 +53,16 @@ as is documented later.
 #+begin_src emacs-lisp
 
   (defun efs/org-mode-visual-fill ()
+    "Sets the width just so that there's a little bit
+     of space on the left."
     (setq visual-fill-column-width 110
           visual-fill-column-center-text t))
 
   (efs/org-mode-visual-fill)
   (global-visual-fill-column-mode 1)
+  ; Use it everywhere
 
-  (use-package visual-fill-column)
+    (use-package visual-fill-column)
 
   #+end_src
 
@@ -105,9 +112,25 @@ This disables the built-in package manager from loading.
 #+begin_src emacs-lisp
 
   (use-package doom-themes
-    :defer t
-    :init (load-theme 'doom-solarized-light t))
-  
+   :defer t
+   :init (load-theme 'doom-solarized-light t))
+
+  ;; (use-package modus-themes
+  ;; :ensure
+  ;; :init
+  ;; ;; Add all your customizations prior to loading the themes
+  ;; (setq modus-themes-italic-constructs t
+  ;;       modus-themes-bold-constructs nil
+  ;;       modus-themes-region '(bg-only no-extend))
+
+  ;; ;; Load the theme files before enabling a theme
+  ;; (modus-themes-load-themes)
+  ;; :config
+  ;; ;; Load the theme of your choice:
+  ;; (modus-themes-load-operandi) ;; OR (modus-themes-load-vivendi)
+  ;; :bind ("<f5>" . modus-themes-toggle))
+
+
 #+end_src
 
 ** Mac specific
@@ -117,7 +140,10 @@ This disables the built-in package manager from loading.
           (mapc #'disable-theme custom-enabled-themes)
           (pcase appearance
             ('light (load-theme 'doom-solarized-light t))
-            ('dark (load-theme 'doom-dracula t))))
+            ;('light (load-theme 'modus-operandi t))
+            ('dark (load-theme 'doom-dracula t))
+            ;('dark (load-theme 'modus-vivendi t))
+            ))
 
   (if (eq window-system 'ns)
       (progn
@@ -423,7 +449,7 @@ A better pdf reader for emacs, here specifically for use with org-noter
 
 ** Fonts
 
-Mostly from [[https://zzamboni.org/post/beautifying-org-mode-in-emacs/][here]].
+Mostly from [[https://zzamboni.org/post/beautifying-org-mode-in-emacs/][here]]. 
 
 #+begin_src emacs-lisp
 
@@ -433,7 +459,8 @@ Mostly from [[https://zzamboni.org/post/beautifying-org-mode-in-emacs/][here]].
   (set-face-attribute 'default nil :height 140)
 
   (let* (;(variable-tuple '(:font "Source Sans Pro"))
-         (variable-tuple '(:font "ETBembo"))
+         ;(variable-tuple '(:font "-*-Brygada 1918-semibold-normal-normal-*-*-*-*-*-p-0-iso10646-1"))
+         (variable-tuple '(:font "Computer Modern"))
          (base-font-color     (face-foreground 'default nil 'default))
          (headline           `(:inherit default :weight bold :foreground ,base-font-color)))
 
@@ -450,11 +477,11 @@ Mostly from [[https://zzamboni.org/post/beautifying-org-mode-in-emacs/][here]].
                               ((t (,@headline ,@variable-tuple :height 1.5 :underline nil))))))
 
 
-    (custom-theme-set-faces
+  (custom-theme-set-faces
    'user
-   '(variable-pitch ((t (:family "ETBembo" :height 170)))) ;; For regular writing
+   '(variable-pitch ((t (:family "Brygada 1918" :height 155)))) ;; For regular writing
    '(fixed-pitch ((t (:family "Menlo" :height 140))))      ;; For code and stuff
-   
+
    '(org-block ((t (:inherit fixed-pitch))))
    '(org-code ((t (:inherit (shadow fixed-pitch)))))
    '(org-document-info ((t (:foreground "dark orange"))))
@@ -530,6 +557,8 @@ Mostly from [[https://zzamboni.org/post/beautifying-org-mode-in-emacs/][here]].
 #+end_src
 
 ** Babel configuration
+
+
 *** Initialization
 #+begin_src emacs-lisp
 
@@ -545,7 +574,7 @@ Mostly from [[https://zzamboni.org/post/beautifying-org-mode-in-emacs/][here]].
   (setq org-confirm-babel-evaluate nil
         org-src-fontify-natively t
         org-src-tab-acts-natively t)
-  ž
+  
   (require 'org-tempo)
 
   (add-to-list 'org-structure-template-alist '("sh" . "src shell"))
@@ -893,7 +922,8 @@ This one calls =org-update-tag= for all the pairs. This we can hook.
 ** Query
 A function to easily query for note tags with a given tag.
 
-Doesn't fucking work, mind you. 
+Doesn't fucking work, mind you.
+
 #+begin_src emacs-lisp :tangle no
 
   (defun org-get-all-with-tag (otag)
@@ -1050,7 +1080,7 @@ Firstly, we must set a header for our org files to use.
   (add-hook 'org-mode-hook (lambda () (add-hook 'xenops-mode-hook #'xenops-dwim)))
 
   (setq xenops-reveal-on-entry t)
-  (setq xenops-math-image-scale-factor 2.0) ; Macs be high res.
+  (setq xenops-math-image-scale-factor 1.8) ; Macs be high res.
 
 
 #+end_src
