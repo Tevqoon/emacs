@@ -297,14 +297,16 @@
 (set-terminal-coding-system 'utf-8)
 (set-keyboard-coding-system 'utf-8)
 
+(setq org-image-actual-width '(800))
+
 ;; Line spacing
 (setq line-spacing 0.1)
 
 (set-face-attribute 'default nil :height 140)
 
 (let* (;(variable-tuple '(:font "Source Sans Pro"))
-       ;(variable-tuple '(:font "-*-Brygada 1918-semibold-normal-normal-*-*-*-*-*-p-0-iso10646-1"))
-       (variable-tuple '(:font "Computer Modern"))
+       (variable-tuple '(:font "-*-Brygada 1918-semibold-normal-normal-*-*-*-*-*-p-0-iso10646-1"))
+       ;(variable-tuple '(:font "Arial"))
        (base-font-color     (face-foreground 'default nil 'default))
        (headline           `(:inherit default :weight bold :foreground ,base-font-color)))
 
@@ -313,7 +315,7 @@
                           `(org-level-7 ((t (,@headline ,@variable-tuple))))
                           `(org-level-6 ((t (,@headline ,@variable-tuple))))
                           `(org-level-5 ((t (,@headline ,@variable-tuple))))
-                          `(org-level-4 ((t (,@headline ,@variable-tuple :height 1))))
+                          `(org-level-4 ((t (,@headline ,@variable-tuple :height 1.1))))
                           `(org-level-3 ((t (,@headline ,@variable-tuple :height 1.1))))
                           `(org-level-2 ((t (,@headline ,@variable-tuple :height 1.25))))
                           `(org-level-1 ((t (,@headline ,@variable-tuple :height 1.5))))
@@ -324,6 +326,7 @@
 (custom-theme-set-faces
  'user
  '(variable-pitch ((t (:family "Brygada 1918" :height 155)))) ;; For regular writing
+ ;'(variable-pitch ((t (:family "Arial" :height 155))))
  '(fixed-pitch ((t (:family "Menlo" :height 140))))      ;; For code and stuff
 
  '(org-block ((t (:inherit fixed-pitch))))
@@ -399,7 +402,7 @@
 
 (add-to-list 'org-structure-template-alist '("sh" . "src shell"))
 (add-to-list 'org-structure-template-alist '("el" . "src emacs-lisp"))
-(add-to-list 'org-structure-template-alist '("py" . "src python"))
+(add-to-list 'org-structure-template-alist '("py" . "src python :results output"))
 (add-to-list 'org-structure-template-alist '("cs" . "src C"))
 
 ;; Automatically tangle our Emacs.org config file when we save it
