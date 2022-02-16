@@ -1,9 +1,8 @@
 # -*- mode: snippet -*-
-# name: Anki Flashcard
-# key: Anki
+# name: Anki Here
+# key: AnkiH
 # --
 
-* ${1:Item}
 :PROPERTIES:
 :ANKI_NOTE_TYPE: Basic
 :ANKI_DECK: Default

@@ -5,45 +5,52 @@
 This file is the code. Using =org-babel-tangle= it gets converted to an =init.el= file upon every save,
 as is documented later.
 
+* Meta
+Currently using Emacs-Plus 28 from [[https://github.com/d12frosted/homebrew-emacs-plus][here]] compiled with =--with-native-comp= and =--with-xwidgets=. Compile time was quite long on 2.9Ghz 2017 MBP. Looking forward to testing on M1 Pro.
+
 
 * General configs
 ** Initialization
 #+begin_src emacs-lisp
-  ;; (setq debug-on-error t)
+;; (setq debug-on-error t)
 
-  (setq inhibit-startup-message t)
+(setq inhibit-startup-message t)
 
-  (setq frame-resize-pixelwise t)
-  (tool-bar-mode -1)          ; Disable the toolbar
-  (tooltip-mode -1)           ; Disable tooltips
-  (set-fringe-mode 5)        ; Give some breathing room
+(setq frame-resize-pixelwise t)
+(tool-bar-mode -1)          ; Disable the toolbar
+(tooltip-mode -1)           ; Disable tooltips
+(set-fringe-mode 5)        ; Give some breathing room
 
-  (menu-bar-mode -1)            ; Disable the menu
+(menu-bar-mode -1)            ; Disable the menu
+(setq ring-bell-function 'ignore) ; Shut the annoying fucking sound
 
-  (setq-default cursor-type 'bar)
+(setq-default cursor-type 'bar)
 
-  (column-number-mode) ; Add column numbers to modeline
+(column-number-mode) ; Add column numbers to modeline
 
-  ;; (global-display-line-numbers-mode t) ; Add line numbers
-  ;; No line numbers for now fuck that
+;; (global-display-line-numbers-mode t) ; Add line numbers
+;; No line numbers for now fuck that
 
-  ;;Disable line numbers for some modes
-  (dolist (mode '(term-mode-hook
-                  shell-mode-hook
-                  eshell-mode-hook
-                  xwidget-webkit-mode-hook
-                  pdf-view-mode-hook
-                  racket-repl-mode-hook))
-    (add-hook mode (lambda () (display-line-numbers-mode 0))))
+;;Disable line numbers for some modes
+(dolist (mode '(term-mode-hook
+                shell-mode-hook
+                eshell-mode-hook
+                xwidget-webkit-mode-hook
+                pdf-view-mode-hook
+                racket-repl-mode-hook))
+  (add-hook mode (lambda () (display-line-numbers-mode 0))))
 
-  ;; Make ESC quitflashcards
-  (global-set-key (kbd "<escape>") 'keyboard-escape-quit)
+;; Make ESC quitflashcards
+(global-set-key (kbd "<escape>") 'keyboard-escape-quit)
 
-  ;; Switching between frames of emacs in line with my common shortcuts
-  (global-set-key (kbd "C-s-<tab>") #'ns-next-frame)
+;; Switching between frames of emacs in line with my common shortcuts
+(global-set-key (kbd "C-s-<tab>") #'ns-next-frame)
 
-  (setq custom-file "~/.emacs.d/custom.el") ; Separate custom file since we retangle =init.el= often.
-  (load custom-file)
+(setq custom-file "~/.emacs.d/custom.el") ; Separate custom file since we retangle =init.el= often.
+(load custom-file)
+
+(setq echo-keystrokes .01) ; Make sure to show keystrokes immediately
+
 
 #+end_src
 
@@ -305,7 +312,17 @@ Makes it so yanking/typing over a selected region of text deletes what is alread
   (show-paren-mode 1)
   (setq show-paren-delay 0)
 
-  (use-package paredit)
+  (use-package paredit) ; Lol?
+
+  (autoload 'enable-paredit-mode "paredit" "Turn on pseudo-structural editing of Lisp code." t)
+  (add-hook 'emacs-lisp-mode-hook       #'enable-paredit-mode)
+  (add-hook 'eval-expression-minibuffer-setup-hook #'enable-paredit-mode)
+  (add-hook 'ielm-mode-hook             #'enable-paredit-mode)
+  (add-hook 'lisp-mode-hook             #'enable-paredit-mode)
+  (add-hook 'lisp-interaction-mode-hook #'enable-paredit-mode)
+  (add-hook 'scheme-mode-hook           #'enable-paredit-mode)
+  (add-hook 'racket-mode-hook           #'enable-paredit-mode)
+
 
 #+end_src
 
@@ -444,7 +461,7 @@ A better pdf reader for emacs, here specifically for use with org-noter
   (set-terminal-coding-system 'utf-8)
   (set-keyboard-coding-system 'utf-8)
 
-  (setq org-image-actual-width '(800))
+  (setq org-image-actual-width '(500))
 
 #+end_src
 
@@ -564,25 +581,26 @@ Mostly from [[https://zzamboni.org/post/beautifying-org-mode-in-emacs/][here]].
 *** Initialization
 #+begin_src emacs-lisp
 
-  (org-babel-do-load-languages
-   'org-babel-load-languages
-   '((emacs-lisp . t)
-     (python . t)
-     (C . t)
-     ))
+    (org-babel-do-load-languages
+     'org-babel-load-languages
+     '((emacs-lisp . t)
+       (python . t)
+       (C . t)
+       ))
 
-  (setq org-babel-python-command "python3")
+    (setq org-babel-python-command "python3")
 
-  (setq org-confirm-babel-evaluate nil
-        org-src-fontify-natively t
-        org-src-tab-acts-natively t)
+    (setq org-confirm-babel-evaluate nil
+          org-src-fontify-natively t
+          org-src-tab-acts-natively t
+          org-src-preserve-indentation t)
   
-  (require 'org-tempo)
+    (require 'org-tempo)
 
-  (add-to-list 'org-structure-template-alist '("sh" . "src shell"))
-  (add-to-list 'org-structure-template-alist '("el" . "src emacs-lisp"))
-  (add-to-list 'org-structure-template-alist '("py" . "src python :results output"))
-  (add-to-list 'org-structure-template-alist '("cs" . "src C"))
+    (add-to-list 'org-structure-template-alist '("sh" . "src shell"))
+    (add-to-list 'org-structure-template-alist '("el" . "src emacs-lisp"))
+    (add-to-list 'org-structure-template-alist '("py" . "src python :results output"))
+    (add-to-list 'org-structure-template-alist '("cs" . "src C"))
 
 #+end_src
 
@@ -636,6 +654,7 @@ if it lacks a name, or use the hyperlink itself in that case.
            ("C-c n p" . anki-editor-push-notes)
            ("C-c n P" . anki/push-all)
            ("C-c n t" . org-roam-extract-subtree)
+           ("C-c n a" . org-roam-alias-add)
            :map org-mode-map
            ("C-M-i"    . completion-at-point)
            ("C-c C-x C-l" . nil)) ; Built in LaTeX previews are an annoyance with xenops.
@@ -727,22 +746,7 @@ The default template (and as such what we will set our templates list for now) i
          "%?"
          :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n")
          :unnarrowed t)
-        ("p" "project" plain "* Goals\n\n%?\n\n* Tasks\n\n** TODO Add initial tasks\n\n* Dates\n\n"
-                :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n#+filetags: Project")
-                :unnarrowed t)
-        ("b" "book notes" plain
-              "\n* Source\n\nAuthor: %^{Author}\nTitle: ${title}\nYear: %^{Year}\n\n* Summary\n\n%?"
-              :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n#+filetags: Book")
-              :unnarrowed t)
-        ("f" "Flashcard" plain (file "~/Documents/repos/org/roam/templates/AnkiNoteTemplate.org")
-         :if-new (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n")
-           :unnarrowed t)
-      ("r" "bibliography reference" plain
-       "%?
-  %^{author} published %^{entry-type} in %^{date}: fullcite:%\\1."
-       :target
-       (file+head "references/${citekey}.org" "#+title: ${title}\n")
-       :unnarrowed t)))
+        ))
 
 #+end_src
 
@@ -1027,8 +1031,10 @@ Have to review all of the packages and make sure everything plays nice, and conf
 *** Org default package
 Firstly, we must set a header for our org files to use.
 #+begin_src emacs-lisp
+
   (setq org-latex-packages-alist '(("" "/Users/jure/.emacs.d/defaults/js" t)))
   ;;(setq org-latex-packages-alist nil)
+
  #+end_src
  
 *** AUCTeX
@@ -1059,7 +1065,8 @@ Firstly, we must set a header for our org files to use.
     :init (company-auctex-init))
 
 #+end_src
-*** CDLaTex
+
+*** CDLaTeX
 #+begin_src emacs-lisp
 
   (use-package cdlatex
@@ -1084,6 +1091,28 @@ Firstly, we must set a header for our org files to use.
   (setq xenops-reveal-on-entry t)
   (setq xenops-math-image-scale-factor 1.8) ; Macs be high res.
 
+(setq xenops-math-latex-process 'dvisvgm)
+
+#+end_src
+
+A custom renderer that uses pdf as an intermediary format and converts it to the vector format =svg= to allow for good =tikz-cd= rendering. Need to find a good way to convert the pdf to svg tho.
+
+#+begin_src emacs-lisp :tangle no
+
+(add-to-list 'xenops-math-latex-process-alist
+             '(my/pdfsvgm
+	       :programs ("latex", "convert")
+	       :description "pdf > svg"
+	       :message "you need to install the programs: latex and imagemagick."
+	       :image-input-type "pdf"
+	       :image-output-type "svg"
+	       :image-size-adjust (1.7 . 1.5)
+	       :latex-compiler ("pdflatex -interaction nonstopmode -shell-escape -output-directory %o %f")
+	       :image-converter ("dvisvgm --pdf %f -n -b %B -c %S -o %O")
+	       ))
+
+(setq xenops-math-latex-process 'my/pdfsvgm)
+  
 
 #+end_src
 ** Racket
@@ -1093,20 +1122,6 @@ Firstly, we must set a header for our org files to use.
 
 
 * Programming/editing stuff
-** Idle highlight mode
-#+begin_src emacs-lisp :tangle no
-    (use-package idle-highlight-mode
-      :config (setq idle-highlight-idle-time 0.2)
-      :hook (prog-mode . idle-highlight-mode))
-#+end_src
-** Flycheck
-Syntax checking, seems to just work, so to speak. Also seems to be quite annoying. Disabling for now.
-#+begin_src emacs-lisp :tangle no
-
-  (use-package flycheck)
-  (global-flycheck-mode)
-
-#+end_src
 ** Auto-activating-snippets
 #+begin_src emacs-lisp
   (use-package aas

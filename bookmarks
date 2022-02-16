@@ -8,10 +8,10 @@
  (rear-context-string . "680B][@Tasks]]\n\n")
  (position . 403))
 ("org-capture-last-stored"
- (filename . "~/Documents/org/20220203232924-smooth_manifold.org")
+ (filename . "~/Documents/org/20220215135845-havajski_uhan.org")
  (front-context-string)
- (rear-context-string . "Smooth manifold\n")
- (position . 93))
+ (rear-context-string . ": Havajski uhan\n")
+ (position . 91))
 ("org-refile-last-stored"
  (filename . "~/Documents/org/20211117164414-inbox.org")
  (front-context-string . "** TODO Add bett")
