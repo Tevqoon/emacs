@@ -3,8 +3,11 @@
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
+ '(custom-safe-themes
+   '("4f1d2476c290eaa5d9ab9d13b60f2c0f1c8fa7703596fa91b235db7f99a9441b" default))
  '(org-agenda-files
-   '("~/Documents/org/20220214100718-realne_podmnogoterosti.org" "/Users/jure/Documents/org/20211201003254-financial.org" "/Users/jure/Documents/org/20211121211808-awodey_category_theory.org" "/Users/jure/Documents/org/20211117164414-inbox.org" "/Users/jure/Documents/org/20211116204149-meta_notetaking.org" "/Users/jure/Documents/org/20220213212024-paredit.org" "/Users/jure/Documents/org/daily/2022-02-14.org" "/Users/jure/Documents/org/20220211173847-tech.org" "/Users/jure/Documents/org/20211125224815-goals.org" "/Users/jure/Documents/org/20211117183951-tasks.org" "/Users/jure/Documents/org/20220215121721-kvocientni_prostori.org" "/Users/jure/Documents/org/20211125032426-emacs.org")))
+   '("~/Documents/org/20220214100718-realne_podmnogoterosti.org" "/Users/jure/Documents/org/20211201003254-financial.org" "/Users/jure/Documents/org/20211121211808-awodey_category_theory.org" "/Users/jure/Documents/org/20211117164414-inbox.org" "/Users/jure/Documents/org/20211116204149-meta_notetaking.org" "/Users/jure/Documents/org/20220213212024-paredit.org" "/Users/jure/Documents/org/daily/2022-02-14.org" "/Users/jure/Documents/org/20220211173847-tech.org" "/Users/jure/Documents/org/20211125224815-goals.org" "/Users/jure/Documents/org/20211117183951-tasks.org" "/Users/jure/Documents/org/20220215121721-kvocientni_prostori.org" "/Users/jure/Documents/org/20211125032426-emacs.org"))
+ '(warning-suppress-log-types '((comp))))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.

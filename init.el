@@ -68,6 +68,7 @@
   (straight-use-package 'use-package)
   (setq straight-use-package-by-default t)
 
+
   ;; Fix emacs $PATH to correspond with shell  
 
     (use-package exec-path-from-shell)
@@ -76,21 +77,6 @@
   (use-package doom-themes
    :defer t
    :init (load-theme 'doom-solarized-light t))
-
-  ;; (use-package modus-themes
-  ;; :ensure
-  ;; :init
-  ;; ;; Add all your customizations prior to loading the themes
-  ;; (setq modus-themes-italic-constructs t
-  ;;       modus-themes-bold-constructs nil
-  ;;       modus-themes-region '(bg-only no-extend))
-
-  ;; ;; Load the theme files before enabling a theme
-  ;; (modus-themes-load-themes)
-  ;; :config
-  ;; ;; Load the theme of your choice:
-  ;; (modus-themes-load-operandi) ;; OR (modus-themes-load-vivendi)
-  ;; :bind ("<f5>" . modus-themes-toggle))
 
    (defun my/apply-theme (appearance)
           "Load theme, taking current system APPEARANCE into consideration."
@@ -309,7 +295,7 @@
   (set-terminal-coding-system 'utf-8)
   (set-keyboard-coding-system 'utf-8)
 
-  (setq org-image-actual-width '(500))
+(setq org-image-actual-width '(200))
 
     ;; Line spacing
   (setq line-spacing 0.1)
@@ -402,9 +388,13 @@
      '((emacs-lisp . t)
        (python . t)
        (C . t)
+       (latex . t)
        ))
 
-    (setq org-babel-python-command "python3")
+(require 'ox-latex)
+
+(setq org-babel-python-command "python3")
+(setq org-latex-create-formula-image-program 'dvipng)
 
     (setq org-confirm-babel-evaluate nil
           org-src-fontify-natively t
@@ -443,12 +433,12 @@
            ("C-c n i" . org-roam-node-insert)
            ("C-c n c" . org-roam-capture)
            ("C-c n d" . org-roam-dailies-map)
-           ("C-c n r" . org-roam-refile)
-           ("C-c n g" . org-id-get-create)
+           ("C-c n n r" . org-roam-refile)
+           ("C-c n n g" . org-id-get-create)
            ("C-c n p" . anki-editor-push-notes)
-           ("C-c n P" . anki/push-all)
-           ("C-c n t" . org-roam-extract-subtree)
-           ("C-c n a" . org-roam-alias-add)
+           ("C-c n n p" . anki/push-all)
+           ("C-c n n t" . org-roam-extract-subtree)
+           ("C-c n n a" . org-roam-alias-add)
            :map org-mode-map
            ("C-M-i"    . completion-at-point)
            ("C-c C-x C-l" . nil)) ; Built in LaTeX previews are an annoyance with xenops.
@@ -471,6 +461,15 @@
 
   (setq org-roam-dailies-directory "daily/")
 
+(straight-use-package
+ '(org-transclusion
+  :type git
+  :host github
+  :repo "nobiot/org-transclusion"))
+
+(define-key global-map (kbd "C-c n t t") #'org-transclusion-add)
+(define-key global-map (kbd "C-c n t n") #'org-transclusion-mode)
+
   (use-package org-roam-ui
     :straight
       (:host github :repo "org-roam/org-roam-ui" :branch "main" :files ("*.el" "out"))
@@ -485,10 +484,6 @@
       (setq org-roam-ui-update-on-save t)
       (setq org-roam-ui-open-on-start nil))
 
-  (defun org-roam-ui-open-in-emacs ()
-    (interactive)
-    (xwidget-webkit-browse-url "http://localhost:35901"))
-
     (setq org-roam-capture-templates
       '(("d" "default" plain
          "%?"
@@ -499,6 +494,8 @@
   (use-package vulpea)
 
   (use-package anki-editor)
+
+(add-hook 'org-mode-hook (lambda () (anki-editor-mode 1)))
 
   (use-package deft
     :config
@@ -661,10 +658,20 @@
     (add-hook 'TeX-after-compilation-finished-functions
                #'TeX-revert-document-buffer)
 
-  (use-package cdlatex
-    :hook (LaTeX-mode . turn-on-cdlatex))
+(use-package cdlatex)
 
-  (add-hook 'org-mode-hook #'turn-on-org-cdlatex)
+(setq cdlatex-command-alist
+      '(("al" "Insert aligned environment" "" cdlatex-environment ("aligned") nil t)
+	("bm" "Insert bmatrix environment" "" cdlatex-environment ("bmatrix") nil t)
+	("se" "Insert a nice subsetequals" "\\subseteq" nil nil nil t)
+	("imp" "implies" "\\implies" nil nil nil t)
+	("imb" "Implied" "\\impliedby" nil nil nil t)
+	))
+
+
+
+(add-hook 'LaTeX-mode-hook #'turn-on-org-cdlatex)
+(add-hook 'org-mode-hook   #'turn-on-org-cdlatex)
 
   (use-package xenops)
 
@@ -678,7 +685,16 @@
   (setq xenops-reveal-on-entry t)
   (setq xenops-math-image-scale-factor 1.8) ; Macs be high res.
 
+(defun xenops-math-latex-calculate-dpi ()
+  "Calculate DPI to be used during fragment image generation."
+  (* 10 (/ (round (* (org--get-display-dpi)
+		     (car (xenops-math-latex-process-get :image-size-adjust))
+		xenops-math-image-scale-factor)) 10)))
+
+
 (setq xenops-math-latex-process 'dvisvgm)
+;(setq xenops-math-latex-process 'imagemagick)
+;(setq xenops-math-latex-process 'dvipng)
 
 (use-package racket-mode)
 

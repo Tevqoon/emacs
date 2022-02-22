@@ -6,7 +6,7 @@ This file is the code. Using =org-babel-tangle= it gets converted to an =init.el
 as is documented later.
 
 * Meta
-Currently using Emacs-Plus 28 from [[https://github.com/d12frosted/homebrew-emacs-plus][here]] compiled with =--with-native-comp= and =--with-xwidgets=. Compile time was quite long on 2.9Ghz 2017 MBP. Looking forward to testing on M1 Pro.
+Currently using Emacs-Plus 28 from [[https://github.com/d12frosted/homebrew-emacs-plus][here]] compiled with =--with-native-comp=, =--with-imagemagick= and =--with-xwidgets=. Compile time was cca 30min on 2.9Ghz 2017 MBP. Looking forward to testing on M1 Pro.
 
 
 * General configs
@@ -99,6 +99,7 @@ We use =straight.el= due to greater power and flexibility, especially and/or spe
   (straight-use-package 'use-package)
   (setq straight-use-package-by-default t)
 
+
   ;; Fix emacs $PATH to correspond with shell  
 
     (use-package exec-path-from-shell)
@@ -120,22 +121,6 @@ This disables the built-in package manager from loading.
   (use-package doom-themes
    :defer t
    :init (load-theme 'doom-solarized-light t))
-
-  ;; (use-package modus-themes
-  ;; :ensure
-  ;; :init
-  ;; ;; Add all your customizations prior to loading the themes
-  ;; (setq modus-themes-italic-constructs t
-  ;;       modus-themes-bold-constructs nil
-  ;;       modus-themes-region '(bg-only no-extend))
-
-  ;; ;; Load the theme files before enabling a theme
-  ;; (modus-themes-load-themes)
-  ;; :config
-  ;; ;; Load the theme of your choice:
-  ;; (modus-themes-load-operandi) ;; OR (modus-themes-load-vivendi)
-  ;; :bind ("<f5>" . modus-themes-toggle))
-
 
 #+end_src
 
@@ -461,7 +446,7 @@ A better pdf reader for emacs, here specifically for use with org-noter
   (set-terminal-coding-system 'utf-8)
   (set-keyboard-coding-system 'utf-8)
 
-  (setq org-image-actual-width '(500))
+(setq org-image-actual-width '(200))
 
 #+end_src
 
@@ -577,7 +562,6 @@ Mostly from [[https://zzamboni.org/post/beautifying-org-mode-in-emacs/][here]].
 
 ** Babel configuration
 
-
 *** Initialization
 #+begin_src emacs-lisp
 
@@ -586,9 +570,13 @@ Mostly from [[https://zzamboni.org/post/beautifying-org-mode-in-emacs/][here]].
      '((emacs-lisp . t)
        (python . t)
        (C . t)
+       (latex . t)
        ))
 
-    (setq org-babel-python-command "python3")
+(require 'ox-latex)
+
+(setq org-babel-python-command "python3")
+(setq org-latex-create-formula-image-program 'dvipng)
 
     (setq org-confirm-babel-evaluate nil
           org-src-fontify-natively t
@@ -633,7 +621,6 @@ if it lacks a name, or use the hyperlink itself in that case.
   (use-package org-ref)
 #+end_src
 
-
 * Org-roam
 ** Base
 #+begin_src emacs-lisp
@@ -649,12 +636,12 @@ if it lacks a name, or use the hyperlink itself in that case.
            ("C-c n i" . org-roam-node-insert)
            ("C-c n c" . org-roam-capture)
            ("C-c n d" . org-roam-dailies-map)
-           ("C-c n r" . org-roam-refile)
-           ("C-c n g" . org-id-get-create)
+           ("C-c n n r" . org-roam-refile)
+           ("C-c n n g" . org-id-get-create)
            ("C-c n p" . anki-editor-push-notes)
-           ("C-c n P" . anki/push-all)
-           ("C-c n t" . org-roam-extract-subtree)
-           ("C-c n a" . org-roam-alias-add)
+           ("C-c n n p" . anki/push-all)
+           ("C-c n n t" . org-roam-extract-subtree)
+           ("C-c n n a" . org-roam-alias-add)
            :map org-mode-map
            ("C-M-i"    . completion-at-point)
            ("C-c C-x C-l" . nil)) ; Built in LaTeX previews are an annoyance with xenops.
@@ -679,6 +666,25 @@ if it lacks a name, or use the hyperlink itself in that case.
 
 
 #+end_src
+
+** Org-transclusion
+Fuck it, I'm making my own damn Xanadu.
+
+#+begin_src emacs-lisp
+
+(straight-use-package
+ '(org-transclusion
+  :type git
+  :host github
+  :repo "nobiot/org-transclusion"))
+
+(define-key global-map (kbd "C-c n t t") #'org-transclusion-add)
+(define-key global-map (kbd "C-c n t n") #'org-transclusion-mode)
+
+
+#+end_src
+
+
 ** Org-roam-ui
 A package which allows one to view their nodes as a graph, using a web interface. [[https://github.com/org-roam/org-roam-ui][Link]].
 #+begin_src emacs-lisp
@@ -696,10 +702,6 @@ A package which allows one to view their nodes as a graph, using a web interface
       (setq org_roam-ui-follow nil)
       (setq org-roam-ui-update-on-save t)
       (setq org-roam-ui-open-on-start nil))
-
-  (defun org-roam-ui-open-in-emacs ()
-    (interactive)
-    (xwidget-webkit-browse-url "http://localhost:35901"))
 
 #+end_src
 ** citations
@@ -772,6 +774,8 @@ Allows editing of anki flashcards directly in org files using tags.
 #+begin_src emacs-lisp
 
   (use-package anki-editor)
+
+(add-hook 'org-mode-hook (lambda () (anki-editor-mode 1)))
   
 #+end_src
 ** Deft
@@ -925,28 +929,7 @@ This one calls =org-update-tag= for all the pairs. This we can hook.
 
 #+end_src
 
-** Query
-A function to easily query for note tags with a given tag.
-
-Doesn't fucking work, mind you.
-
-#+begin_src emacs-lisp :tangle no
-
-  (defun org-get-all-with-tag (otag)
-    "Return a list of note files containing the given tag" ;
-    (let ((ntag (concat "%\"" otag "\"%")))
-      (seq-uniq
-       (seq-map
-	#'car
-	(org-roam-db-query
-	 [:select [nodes:file]
-		  :from tags
-		  :left-join nodes
-		  :on (= tags:node-id nodes:id)
-		  :where (like tag (concat "%\"" otag "\"%"))])))))
-
-#+end_src
-		  
+** Query		  
 *** Project
 
 #+begin_src emacs-lisp
@@ -1028,7 +1011,7 @@ We advise the actual =org-agenda= function to update the agenda files to the fil
 
 ** LaTeX
 Have to review all of the packages and make sure everything plays nice, and configure various interactions etc, have to see how much LSP will do by itself.
-*** Org default package
+*** Org
 Firstly, we must set a header for our org files to use.
 #+begin_src emacs-lisp
 
@@ -1058,24 +1041,29 @@ Firstly, we must set a header for our org files to use.
 
 #+end_src
 
-*** Company-AUCTeX 
-#+begin_src emacs-lisp :tangle no
-
-  (use-package company-auctex
-    :init (company-auctex-init))
-
-#+end_src
-
 *** CDLaTeX
 #+begin_src emacs-lisp
 
-  (use-package cdlatex
-    :hook (LaTeX-mode . turn-on-cdlatex))
+(use-package cdlatex)
 
-  (add-hook 'org-mode-hook #'turn-on-org-cdlatex)
+(setq cdlatex-command-alist
+      '(("al" "Insert aligned environment" "" cdlatex-environment ("aligned") nil t)
+	("bm" "Insert bmatrix environment" "" cdlatex-environment ("bmatrix") nil t)
+	("se" "Insert a nice subsetequals" "\\subseteq" nil nil nil t)
+	("imp" "implies" "\\implies" nil nil nil t)
+	("imb" "Implied" "\\impliedby" nil nil nil t)
+	))
+
+
+
+(add-hook 'LaTeX-mode-hook #'turn-on-org-cdlatex)
+(add-hook 'org-mode-hook   #'turn-on-org-cdlatex)
 
 
 #+end_src
+
+
+
 *** Xenops
   I use xenops, for now only in org. Need to configure safe usage in "real" TeX files.
 #+begin_src emacs-lisp
@@ -1091,7 +1079,16 @@ Firstly, we must set a header for our org files to use.
   (setq xenops-reveal-on-entry t)
   (setq xenops-math-image-scale-factor 1.8) ; Macs be high res.
 
+(defun xenops-math-latex-calculate-dpi ()
+  "Calculate DPI to be used during fragment image generation."
+  (* 10 (/ (round (* (org--get-display-dpi)
+		     (car (xenops-math-latex-process-get :image-size-adjust))
+		xenops-math-image-scale-factor)) 10)))
+
+
 (setq xenops-math-latex-process 'dvisvgm)
+;(setq xenops-math-latex-process 'imagemagick)
+;(setq xenops-math-latex-process 'dvipng)
 
 #+end_src
 
@@ -1100,18 +1097,29 @@ A custom renderer that uses pdf as an intermediary format and converts it to the
 #+begin_src emacs-lisp :tangle no
 
 (add-to-list 'xenops-math-latex-process-alist
-             '(my/pdfsvgm
-	       :programs ("latex", "convert")
+	     '(pdfsvg
+	       :programs ("pdflatex" "pdf2svg")
 	       :description "pdf > svg"
-	       :message "you need to install the programs: latex and imagemagick."
+	       :message "you need to install the programs: latex and dvisvgm."
 	       :image-input-type "pdf"
 	       :image-output-type "svg"
 	       :image-size-adjust (1.7 . 1.5)
 	       :latex-compiler ("pdflatex -interaction nonstopmode -shell-escape -output-directory %o %f")
-	       :image-converter ("dvisvgm --pdf %f -n -b %B -c %S -o %O")
-	       ))
+	       :image-converter ("pdf2svg %f %O")))
 
-(setq xenops-math-latex-process 'my/pdfsvgm)
+(add-to-list 'xenops-math-latex-process-alist
+	      '(my/imagemagick
+		:programs ("latex" "convert")
+	       :description "pdf > png"
+	       :message "you need to install the programs: latex and imagemagick."
+	       :image-input-type "pdf"
+	       :image-output-type "png"
+	       :image-size-adjust (0.5 . 0.5)
+	       :latex-compiler ("pdflatex -interaction nonstopmode -shell-escape -output-directory %o %f")
+	       :image-converter ("convert -density %D -trim -antialias %f -quality 400 %O")))
+
+
+(setq xenops-math-latex-process 'my/imagemagick)
   
 
 #+end_src
@@ -1141,25 +1149,6 @@ Snippets, configuration stolen from [[https://gist.github.com/karthink/7d89df35e
   (yas-global-mode 1)
 
   (use-package yasnippet-snippets)
-
-#+end_src
-
-** company-mode
-Text completion framework. Seems to be working good. Also seems to be a little annoying/useless.
-#+begin_src emacs-lisp :tangle no
-
-    (use-package company)
-
-    (add-hook 'after-init-hook 'global-company-mode)
-
-    ;; No delay when showing suggestions
-    (setq company-idle-delay 0.3)
-    ;; Show suggestions after the first character is typed
-    (setq company-minimum-prefix-length 1)
-    ;; Make the selection wrap around
-    (setq company-selection-wrap-around t)
-    ;; Make tab cycle
-    ;; (company-tng-mode)
 
 #+end_src
 

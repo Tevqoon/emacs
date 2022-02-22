@@ -6,11 +6,11 @@
 :PROPERTIES:
 :ANKI_NOTE_TYPE: Basic
 :ANKI_DECK: Default
-:ANKI_TAGS: ${2:default}
+:ANKI_TAGS: ${1:default}
 :END:
 
 ** Front
-$1
+$2
 
 ** Back
 $0

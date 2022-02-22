@@ -8,10 +8,10 @@
  (rear-context-string . "680B][@Tasks]]\n\n")
  (position . 403))
 ("org-capture-last-stored"
- (filename . "~/Documents/org/20220215135845-havajski_uhan.org")
+ (filename . "~/Documents/org/20220221131248-normalna_ravnina.org")
  (front-context-string)
- (rear-context-string . ": Havajski uhan\n")
- (position . 91))
+ (rear-context-string . "ormalna ravnina\n")
+ (position . 94))
 ("org-refile-last-stored"
  (filename . "~/Documents/org/20211117164414-inbox.org")
  (front-context-string . "** TODO Add bett")
