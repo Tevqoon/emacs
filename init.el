@@ -7,7 +7,6 @@
 (tooltip-mode -1)           ; Disable tooltips
 (set-fringe-mode 5)        ; Give some breathing room
 
-(menu-bar-mode -1)            ; Disable the menu
 (setq ring-bell-function 'ignore) ; Shut the annoying fucking sound
 
 (setq-default cursor-type 'bar)
@@ -36,6 +35,8 @@
 (load custom-file)
 
 (setq echo-keystrokes .01) ; Make sure to show keystrokes immediately
+
+(server-start) ;Start emacs as a server to be used externally.
 
   (defun efs/org-mode-visual-fill ()
     "Sets the width just so that there's a little bit
@@ -103,25 +104,24 @@
                           (funcall battery-status-function)))))
     (display-battery-mode 1))
 
-  (use-package swiper)
+(use-package swiper)
 
+(use-package counsel)
+(use-package ivy
+  :diminish
+  :bind (("C-s" . swiper)
+         :map ivy-minibuffer-map
+         ("TAB" . ivy-alt-done))
+  :config
+  (ivy-mode 1))
 
-  (use-package counsel)
-  (use-package ivy
-    :diminish
-    :bind (("C-s" . swiper)
-           :map ivy-minibuffer-map
-           ("TAB" . ivy-alt-done))
-    :config
-      (ivy-mode 1))
+(use-package ivy-rich
+  :init
+  (ivy-rich-mode 1))
 
-  (use-package ivy-rich
-    :init
-    (ivy-rich-mode 1))
-
-  ;; Make counsel-switch-buffer the default buffer switcher
-  (global-set-key (kbd "C-x b") 'counsel-switch-buffer)
-    (global-set-key (kbd "s-b") 'counsel-switch-buffer)
+;; Make counsel-switch-buffer the default buffer switcher
+(global-set-key (kbd "C-x b") 'counsel-switch-buffer)
+(global-set-key (kbd "s-b") 'counsel-switch-buffer)
 
     ;; Enable richer annotations using the Marginalia package
   (use-package marginalia
@@ -209,7 +209,8 @@
   (add-hook 'scheme-mode-hook           #'enable-paredit-mode)
   (add-hook 'racket-mode-hook           #'enable-paredit-mode)
 
-(global-auto-revert-mode)
+(global-auto-revert-mode 1)
+(setq global-auto-revert-non-file-buffers t)
 
   ;; Uses rainbow colors for matching parens etc
   (use-package rainbow-delimiters
@@ -667,8 +668,6 @@
 	("imp" "implies" "\\implies" nil nil nil t)
 	("imb" "Implied" "\\impliedby" nil nil nil t)
 	))
-
-
 
 (add-hook 'LaTeX-mode-hook #'turn-on-org-cdlatex)
 (add-hook 'org-mode-hook   #'turn-on-org-cdlatex)

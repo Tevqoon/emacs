@@ -5,11 +5,13 @@
 This file is the code. Using =org-babel-tangle= it gets converted to an =init.el= file upon every save,
 as is documented later.
 
+
 * Meta
 Currently using Emacs-Plus 28 from [[https://github.com/d12frosted/homebrew-emacs-plus][here]] compiled with =--with-native-comp=, =--with-imagemagick= and =--with-xwidgets=. Compile time was cca 30min on 2.9Ghz 2017 MBP. Looking forward to testing on M1 Pro.
 
 
 * General configs
+
 ** Initialization
 #+begin_src emacs-lisp
 ;; (setq debug-on-error t)
@@ -21,7 +23,6 @@ Currently using Emacs-Plus 28 from [[https://github.com/d12frosted/homebrew-emac
 (tooltip-mode -1)           ; Disable tooltips
 (set-fringe-mode 5)        ; Give some breathing room
 
-(menu-bar-mode -1)            ; Disable the menu
 (setq ring-bell-function 'ignore) ; Shut the annoying fucking sound
 
 (setq-default cursor-type 'bar)
@@ -50,6 +51,8 @@ Currently using Emacs-Plus 28 from [[https://github.com/d12frosted/homebrew-emac
 (load custom-file)
 
 (setq echo-keystrokes .01) ; Make sure to show keystrokes immediately
+
+(server-start) ;Start emacs as a server to be used externally.
 
 
 #+end_src
@@ -159,25 +162,24 @@ This disables the built-in package manager from loading.
 ** Autocompletion stuff
 #+begin_src emacs-lisp
 
-  (use-package swiper)
+(use-package swiper)
 
+(use-package counsel)
+(use-package ivy
+  :diminish
+  :bind (("C-s" . swiper)
+         :map ivy-minibuffer-map
+         ("TAB" . ivy-alt-done))
+  :config
+  (ivy-mode 1))
 
-  (use-package counsel)
-  (use-package ivy
-    :diminish
-    :bind (("C-s" . swiper)
-           :map ivy-minibuffer-map
-           ("TAB" . ivy-alt-done))
-    :config
-      (ivy-mode 1))
+(use-package ivy-rich
+  :init
+  (ivy-rich-mode 1))
 
-  (use-package ivy-rich
-    :init
-    (ivy-rich-mode 1))
-
-  ;; Make counsel-switch-buffer the default buffer switcher
-  (global-set-key (kbd "C-x b") 'counsel-switch-buffer)
-    (global-set-key (kbd "s-b") 'counsel-switch-buffer)
+;; Make counsel-switch-buffer the default buffer switcher
+(global-set-key (kbd "C-x b") 'counsel-switch-buffer)
+(global-set-key (kbd "s-b") 'counsel-switch-buffer)
 
 #+end_src
 
@@ -314,7 +316,8 @@ Makes it so yanking/typing over a selected region of text deletes what is alread
 *** Auto-revert-mode
 Automatically update buffers changed on disk.
 #+begin_src emacs-lisp
-(global-auto-revert-mode)
+(global-auto-revert-mode 1)
+(setq global-auto-revert-non-file-buffers t)
 #+end_src
 
 
@@ -620,6 +623,7 @@ if it lacks a name, or use the hyperlink itself in that case.
 #+begin_src emacs-lisp
   (use-package org-ref)
 #+end_src
+
 
 * Org-roam
 ** Base
@@ -1053,8 +1057,6 @@ Firstly, we must set a header for our org files to use.
 	("imp" "implies" "\\implies" nil nil nil t)
 	("imb" "Implied" "\\impliedby" nil nil nil t)
 	))
-
-
 
 (add-hook 'LaTeX-mode-hook #'turn-on-org-cdlatex)
 (add-hook 'org-mode-hook   #'turn-on-org-cdlatex)
