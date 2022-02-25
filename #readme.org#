@@ -1,3 +1,19 @@
+#+TITLE: JS's emacs config
+#+PROPERTY: header-args :mkdirp yes :tangle ./init.el :results value silent
+
+* Intro
+This file is the code. Using =org-babel-tangle= it gets converted to an =init.el= file upon every save,
+as is documented later.
+
+
+* Meta
+Currently using Emacs-Plus 28 from [[https://github.com/d12frosted/homebrew-emacs-plus][here]] compiled with =--with-native-comp=, =--with-imagemagick= and =--with-xwidgets=. Compile time was cca 30min on 2.9Ghz 2017 MBP. Looking forward to testing on M1 Pro.
+
+
+* General configs
+
+** Initialization
+#+begin_src emacs-lisp
 ;; (setq debug-on-error t)
 
 (setq inhibit-startup-message t)
@@ -45,6 +61,12 @@
 
 (global-set-key (kbd "C-x C-c") 'ask-before-closing)
 
+#+end_src
+
+** Padding etc
+
+#+begin_src emacs-lisp
+
   (defun efs/org-mode-visual-fill ()
     "Sets the width just so that there's a little bit
      of space on the left."
@@ -57,7 +79,17 @@
 
     (use-package visual-fill-column)
 
+  #+end_src
+
+** Enabling disabled commands
+#+begin_src emacs-lisp
     (setq disabled-command-function nil)
+#+end_src
+
+** Package initialization
+
+We use =straight.el= due to greater power and flexibility, especially and/or specifically for =org-roam-ui=. [[https://github.com/raxod502/straight.el][Link]].
+#+begin_src emacs-lisp
 
   ;; Initialize package sources
   (defvar bootstrap-version)
@@ -81,11 +113,28 @@
 
     (use-package exec-path-from-shell)
       (exec-path-from-shell-initialize)
+  
+#+end_src
+
+*** early-init loading
+This disables the built-in package manager from loading.
+#+begin_src emacs-lisp :tangle no
+
+  (setq package-enable-at-startup nil)
+
+#+end_src
+
+** Theme stuff
+#+begin_src emacs-lisp
 
   (use-package doom-themes
    :defer t
    :init (load-theme 'doom-solarized-light t))
 
+#+end_src
+
+** Mac specific
+#+begin_src emacs-lisp
    (defun my/apply-theme (appearance)
           "Load theme, taking current system APPEARANCE into consideration."
           (mapc #'disable-theme custom-enabled-themes)
@@ -103,13 +152,21 @@
         (setq ns-right-command-modifier 'hyper)
         (add-hook 'ns-system-appearance-change-functions #'my/apply-theme)
         ))
+#+end_src
 
+** Laptop specific
+*** Battery display
+#+begin_src emacs-lisp
   (use-package battery)
   (when (and battery-status-function
          (not (string-match-p "N/A" 
                   (battery-format "%B"
                           (funcall battery-status-function)))))
     (display-battery-mode 1))
+#+end_src
+
+** Autocompletion stuff
+#+begin_src emacs-lisp
 
 (use-package swiper)
 
@@ -132,6 +189,13 @@
 
 (setq ivy-dynamic-exhibit-delay-ms 250)
 
+#+end_src
+
+** Marginalia
+Adds descriptions to minibuffer completions
+
+#+begin_src emacs-lisp
+
     ;; Enable richer annotations using the Marginalia package
   (use-package marginalia
     ;; Either bind `marginalia-cycle` globally or only in the minibuffer
@@ -146,6 +210,11 @@
     ;; enabled right away. Note that this forces loading the package.
     (marginalia-mode))
 
+#+end_src
+
+** Modeline
+#+begin_src emacs-lisp
+
   (use-package all-the-icons)
   (use-package doom-modeline
     :init (doom-modeline-mode 1)
@@ -154,6 +223,11 @@
   (setq display-time-default-load-average nil)
   (display-time-mode 1)
 
+#+end_src
+
+** Tabs, frames, windows
+And tab bars which manage window configurations. Make them in line with default MacOS shortcuts.
+#+begin_src emacs-lisp
   (tab-bar-mode 1)
 
   (setq tab-bar-new-tab-choice "*scratch*")
@@ -168,10 +242,20 @@
 
   (global-set-key (kbd "s-o") #'other-window)
 
+#+end_src
+*** Winner mode
+Allows to undo and redo window configurations.
+#+begin_src emacs-lisp
   (winner-mode 1)
 
   (global-set-key (kbd "H-<right>") #'winner-redo)
   (global-set-key (kbd "H-<left>") #'winner-undo)
+#+end_src
+
+** Misc
+*** ESC ESC ESC deradicalization
+Replace the =ESC ESC ESC= command with one which does not close all other windows.
+#+begin_src emacs-lisp
 
   (require 'cl-lib)
   (defun my-keyboard-escape-quit (fun &rest args)
@@ -179,11 +263,23 @@
       (apply fun args)))
   (advice-add 'keyboard-escape-quit :around #'my-keyboard-escape-quit)
 
+#+end_src
+
+*** page-break-lines
+A library which displays form feed characters as horizontal rules. [[https://github.com/purcell/page-break-lines][Link]].
+#+begin_src emacs-lisp
   (use-package page-break-lines)
   (global-page-break-lines-mode)
+#+end_src
 
+*** delete-selection-mode
+Makes it so yanking/typing over a selected region of text deletes what is already there, to be more in line with other text editors, and fit into my workflow better.
+#+begin_src emacs-lisp
   (delete-selection-mode 1)
+#+end_src
 
+*** Delete current file
+#+begin_src emacs-lisp
 ;; based on http://emacsredux.com/blog/2013/04/03/delete-file-and-buffer/
 (defun delete-file-and-buffer ()
   "Kill the current buffer and deletes the file it is visiting."
@@ -197,6 +293,10 @@
               (kill-buffer)))
       (message "Not a file visiting buffer!"))))
 
+#+end_src
+
+*** Paren stuff
+#+begin_src emacs-lisp
   (electric-pair-mode 1)
 
   ;; Inhibit the symbol less so it can be used for snippets in org
@@ -207,8 +307,35 @@
   (show-paren-mode 1)
   (setq show-paren-delay 0)
 
+  #+end_src
+  
+#+begin_src emacs-lisp :tangle no
+
+  (use-package paredit) ; Lol?
+
+  (autoload 'enable-paredit-mode "paredit" "Turn on pseudo-structural editing of Lisp code." t)
+  (add-hook 'emacs-lisp-mode-hook       #'enable-paredit-mode)
+  (add-hook 'eval-expression-minibuffer-setup-hook #'enable-paredit-mode)
+  (add-hook 'ielm-mode-hook             #'enable-paredit-mode)
+  (add-hook 'lisp-mode-hook             #'enable-paredit-mode)
+  (add-hook 'lisp-interaction-mode-hook #'enable-paredit-mode)
+  (add-hook 'scheme-mode-hook           #'enable-paredit-mode)
+  (add-hook 'racket-mode-hook           #'enable-paredit-mode)
+
+
+#+end_src
+
+*** Auto-revert-mode
+Automatically update buffers changed on disk.
+#+begin_src emacs-lisp
 (global-auto-revert-mode 1)
 (setq global-auto-revert-non-file-buffers t)
+#+end_src
+
+*** God-mode
+Adds a modal mode above the usual stuffs. [[https://github.com/emacsorphanage/god-mode][github]]
+
+#+begin_src emacs-lisp
 
 (use-package god-mode)
 
@@ -233,8 +360,16 @@
 
 (add-hook 'post-command-hook #'my-god-mode-update-cursor-type)
 
+#+end_src
+** Libraries and stuff
+#+begin_src emacs-lisp
+
 (use-package dash)
 (use-package s)
+
+#+end_src
+** Mark and selection stuff
+#+begin_src emacs-lisp
 
 (defun backward-mark-word ()
   (interactive)
@@ -242,10 +377,20 @@
 
 (global-set-key (kbd "C-@") #'backward-mark-word)
 
+#+end_src
+* General packages
+** Rainbow delimiters
+#+begin_src emacs-lisp
+
   ;; Uses rainbow colors for matching parens etc
   (use-package rainbow-delimiters
     :defer t
-    :hook (prog-mode . rainbow-delimiters-mode))
+    :hook (prog-mode . rainbow-delimiters-mode))  
+
+#+end_src
+
+** Possible keyboard shortcuts
+#+begin_src emacs-lisp
 
   ;; Shows possible keyboard shortcuts
   (use-package which-key
@@ -255,6 +400,11 @@
     (setq which-key-idle-delay 0))
 
 (which-key-enable-god-mode-support)
+
+ #+end_src
+
+** Projectile
+#+begin_src emacs-lisp
 
   (use-package projectile
     :diminish projectile-mode
@@ -271,6 +421,12 @@
   (use-package counsel-projectile
     :config (counsel-projectile-mode))
 
+#+end_src
+
+** Version control
+*** Magit & Forge initialization
+#+begin_src emacs-lisp
+
   (use-package magit
     :custom
     (magit-display-buffer-function #'magit-display-buffer-same-window-except-diff-v1))
@@ -280,11 +436,27 @@
   (use-package forge)
   (setq auth-sources '("~/.authinfo"))
 
+#+end_src
+*** Git time machine
+#+begin_src emacs-lisp
   (use-package git-timemachine)
+#+end_src
+
+** Pdf-mode
+
+A better pdf reader for emacs, here specifically for use with org-noter
+
+#+begin_src emacs-lisp
 
   (use-package tablist)
   (use-package pdf-tools)
   (pdf-tools-install)
+
+#+end_src
+
+** Window-numbering
+
+#+begin_src emacs-lisp
 
   (setq winum-keymap
     (let ((map (make-sparse-keymap)))
@@ -303,6 +475,14 @@
   (use-package winum)
 
   (winum-mode)
+#+end_src
+
+
+
+* Org mode
+** General setup
+
+#+begin_src emacs-lisp
 
   (defun efs/org-mode-setup ()
     (org-indent-mode)
@@ -329,6 +509,14 @@
   (set-keyboard-coding-system 'utf-8)
 
 (setq org-image-actual-width nil)
+
+#+end_src
+
+** Fonts
+
+Mostly from [[https://zzamboni.org/post/beautifying-org-mode-in-emacs/][here]]. 
+
+#+begin_src emacs-lisp
 
     ;; Line spacing
   (setq line-spacing 0.1)
@@ -375,11 +563,23 @@
 
   (add-hook 'org-mode-hook 'variable-pitch-mode)
 
+ #+end_src
+ 
+** Pretty tables
+
+#+begin_src emacs-lisp
+
   (use-package org-pretty-table
     :straight
       (:host github :repo "Fuco1/org-pretty-table" :branch "master" :files ("*.el" "out")))
 
   (add-hook 'org-mode-hook (lambda () (org-pretty-table-mode)))
+
+#+end_src
+
+** Agenda configuration
+
+#+begin_src emacs-lisp
 
   (setq org-todo-keywords
         '((sequence "TODO(t)" "NEXT(n)" "EXPLORE(e)" "HOLD(h)" "WAITING(w)" "|" "DONE(d!)" "CANCELLED(c!)")))
@@ -407,6 +607,10 @@
           ("n" "Next Tasks"
            ((todo "NEXT"
                   ((org-agenda-overriding-header "Next Tasks")))))))
+#+end_src
+
+** Capture templates
+#+begin_src emacs-lisp
 
   (setq org-capture-templates
         `(("t" "Task" entry (file "~/Documents/org/20211117183951-tasks.org")
@@ -415,6 +619,13 @@
   (define-key global-map (kbd "M-i")
     (lambda
       () (interactive) (org-capture)))
+
+#+end_src
+
+** Babel configuration
+
+*** Initialization
+#+begin_src emacs-lisp
 
     (org-babel-do-load-languages
      'org-babel-load-languages
@@ -441,6 +652,11 @@
     (add-to-list 'org-structure-template-alist '("py" . "src python :results output"))
     (add-to-list 'org-structure-template-alist '("cs" . "src C"))
 
+#+end_src
+
+*** Auto-tangle Configuration files
+#+begin_src emacs-lisp
+
   ;; Automatically tangle our Emacs.org config file when we save it
   (defun efs/org-babel-tangle-config ()
     (when (string-equal (buffer-file-name)
@@ -451,9 +667,26 @@
 
   (add-hook 'org-mode-hook (lambda () (add-hook 'after-save-hook #'efs/org-babel-tangle-config)))
 
-  (setq org-export-with-broken-links t)
+#+end_src
 
+** Exporting
+Disable exporting broken html links. Required for =anki-editor= to be able to export roam links.
+Very suboptimal, should maybe look into extending org to allow replacing =id= links in exporting
+with the name of the link, as they tend to always have them. Could still just leave it empty
+if it lacks a name, or use the hyperlink itself in that case.
+#+begin_src emacs-lisp
+  (setq org-export-with-broken-links t)
+#+end_src
+
+** TODO Org-ref
+#+begin_src emacs-lisp
   (use-package org-ref)
+#+end_src
+
+
+* Org-roam
+** Base
+#+begin_src emacs-lisp
 
 (use-package org-roam
   :init
@@ -496,6 +729,14 @@
 
   (setq org-roam-dailies-directory "daily/")
 
+
+#+end_src
+
+** Org-transclusion
+Fuck it, I'm making my own damn Xanadu.
+
+#+begin_src emacs-lisp
+
 (straight-use-package
  '(org-transclusion
   :type git
@@ -504,6 +745,13 @@
 
 (define-key global-map (kbd "C-c n t t") #'org-transclusion-add)
 (define-key global-map (kbd "C-c n t n") #'org-transclusion-mode)
+
+
+#+end_src
+
+** Org-roam-ui
+A package which allows one to view their nodes as a graph, using a web interface. [[https://github.com/org-roam/org-roam-ui][Link]].
+#+begin_src emacs-lisp
 
   (use-package org-roam-ui
     :straight
@@ -519,6 +767,46 @@
       (setq org-roam-ui-update-on-save t)
       (setq org-roam-ui-open-on-start nil))
 
+#+end_src
+** citations
+Adapted from [[https://github.com/tmalsburg/helm-bibtex][here]].
+
+#+begin_src emacs-lisp :tangle no
+  (setq my/bibliography-path "~/Documents/org/library.bib")
+  (setq my/pdf-path "~/Documents/pdfs/")
+  (setq my/bibliography-notes "~/Documents/org/literature/")
+
+  (use-package ivy-bibtex
+    :config
+    (setq bibtex-completion-notes-path my/bibliography-notes)
+    (setq bibtex-completion-bibliography my/bibliography-path))
+
+  (use-package org-roam-bibtex
+    :after (org-roam)
+    :hook (org-roam-mode . org-roam-bibtex-mode)
+    :config
+    (require 'org-ref)
+    (setq org-roam-bibtex-preformat-keywords
+	  '("=key=" "title" "url" "file" "author-or-editor" "keywords"))
+    (setq orb-templates
+	  '(("r" "ref" plain (function org-roam-capture--get-point)
+	     ""
+	     :file-name "${slug}"
+	     :head "#+TITLE: ${=key=}: ${title}\n#+ROAM_KEY: ${ref}
+
+  - tags ::
+  - keywords :: ${keywords}
+
+  \n* ${title}\n  :PROPERTIES:\n  :Custom_ID: ${=key=}\n  :URL: ${url}\n  :AUTHOR: ${author-or-editor}\n  :NOTER_DOCUMENT: %(orb-process-file-field \"${=key=}\")\n  :NOTER_PAGE: \n  :END:\n\n"
+
+	     :unnarrowed t))))
+
+#+end_src
+
+** Org-roam templates
+The default template (and as such what we will set our templates list for now) is:
+#+begin_src emacs-lisp
+
     (setq org-roam-capture-templates
       '(("d" "default" plain
          "%?"
@@ -526,11 +814,36 @@
          :unnarrowed t)
         ))
 
+#+end_src
+
++ "d": The "key", a letter that you press to choose the template
++ "default": The full name of the template
++ plain: The type of text being inserted, always this value for note templates
++ "%?": This is the text that will be inserted into the new note, can be anything!
++ :if-new : The list that follows this describes how the note file will be created
++ :unnarrowed t : Ensures that the full file will be displayed when captured (an Org thing)
+
+** Vulpea
+A library for org-mode stuff.
+
+#+begin_src emacs-lisp
+
   (use-package vulpea)
+  
+#+end_src
+
+** Anki-editor
+Allows editing of anki flashcards directly in org files using tags.
+#+begin_src emacs-lisp
 
   (use-package anki-editor)
 
 (add-hook 'org-mode-hook (lambda () (anki-editor-mode 1)))
+  
+#+end_src
+** Deft
+[[https://github.com/jrblevin/deft/issues/75][Modification for org-roam]]. 
+#+begin_src emacs-lisp
 
   (use-package deft
     :config
@@ -565,6 +878,20 @@
                   "\\|^:PROPERTIES:\n\\(.+\n\\)+:END:\n"
                   "\\)"))
 
+
+#+end_src
+
+
+* Org Tag handler
+A generalized way to add and remove tags to org files easily.
+Used here to give =project= tags to files with todos for agenda usage
+and to give files with flashcards a type =flashcards= in order to allow easy pushing of all flashcards.
+
+Adapted from 
+** Checker functions
+*** Project
+#+begin_src emacs-lisp
+  
   (defun org/project-p ()
     "Return non-nil if current buffer has any todo entry.
 
@@ -579,9 +906,24 @@
              'todo))
        nil 'first-match))                     ; (3)
 
+#+end_src
+
+1. We parse the buffer using org-element-parse-buffer. It returns an abstract syntax tree of the current Org buffer. But sine we care only about headings, we ask it to return only them by passing a GRANULARITY parameter - 'headline. This makes things faster.
+2. Then we extract information about TODO keyword from headline AST, which contains a property we are interested in - :todo-type, which returns the type of TODO keyword according to org-todo-keywords - 'done, 'todo or nil (when keyword is not present).
+3. Now all we have to do is to check if the buffer list contains at least one keyword with 'todo type. We could use seq=find on the result of org-element-map, but it turns out that it provides an optional first-match argument that can be used for our needs. Thanks Gustav for pointing that out.
+
+*** Flashcards
+
+First we make a function that checks whether the current buffer has a flash card.
+#+begin_src emacs-lisp
   (defun anki/flashcard-p ()
     "Returns non-nil if the current buffer has a flash card"
     (member "ANKI_NOTE_TYPE" (org-buffer-property-keys)))
+#+end_src
+
+We have a list of ignored files which won't be updated on the hook with our function.
+We also keep a list of checker functions and their respective tags.
+#+begin_src emacs-lisp
 
     (setq prune/ignored-files
               '("20211119122103-someday.org"
@@ -591,8 +933,21 @@
     (setq tag-checkers (list (cons "project"    'org/project-p)
                              (cons "flashcards" 'anki/flashcard-p)))
 
+#+end_src
+
+** Excluding from inheritance
+
+#+begin_src emacs-lisp
+
   (mapc (lambda (p) (add-to-list 'org-tags-exclude-from-inheritance (car p)))
         tag-checkers)
+  
+#+end_src
+
+** Updater
+Then we have an updater function. We can hook this to take care of our updating.
+
+#+begin_src emacs-lisp
 
   (defun vulpea-buffer-p ()
     "Return non-nil if the currently visited buffer is a note."
@@ -622,11 +977,25 @@
                        (seq-difference original-tags tags))
                (apply #'vulpea-buffer-tags-set tags))))))
 
+#+end_src
+
+** Stich
+This one calls =org-update-tag= for all the pairs. This we can hook.
+
+#+begin_src emacs-lisp
+
   (defun org-update-all-tags ()
     (mapc #'org-update-tag tag-checkers))
 
   (add-hook 'find-file-hook #'org-update-all-tags)
   (add-hook 'before-save-hook #'org-update-all-tags)
+
+#+end_src
+
+** Query		  
+*** Project
+
+#+begin_src emacs-lisp
 
   (defun org-project-files ()
       "Return a list of note files containing 'project' tag." ;
@@ -640,6 +1009,12 @@
 	  :on (= tags:node-id nodes:id)
 	  :where (like tag (quote "%\"project\"%"))]))))
 
+#+end_src
+
+*** Anki connect
+
+#+begin_src emacs-lisp
+
    (defun anki/flashcards-files ()
     "Return a list of note files containing flashcards tag." ;
     (seq-uniq
@@ -652,12 +1027,26 @@
         :on (= tags:node-id nodes:id)
         :where (like tag (quote "%\"flashcards\"%"))]))))
 
+#+end_src
+
+** ConSequences
+*** Project tag stuff
+
+We advise the actual =org-agenda= function to update the agenda files to the files every time we actually need agenda, such as not to need any weird times or manual updates.
+
+#+begin_src emacs-lisp
+  
   (defun roam-agenda-files-update (&rest _)
     "Update the value of `org-agenda-files'."
     (setq org-agenda-files (org-project-files)))
 
   (advice-add 'org-agenda :before #'roam-agenda-files-update)
 
+#+end_src
+
+*** Anki stuff
+
+#+begin_src emacs-lisp
     (defun anki/push-filename (filename)
       "Opens the file with filename as a temporary buffer and pushes its notes."
       (save-excursion
@@ -669,13 +1058,33 @@
       (interactive)
       (mapc #'anki/push-filename (anki/flashcards-files)))
 
+#+end_src
+
+
+* Languages
+** Python
+#+begin_src emacs-lisp
+
   (use-package python-mode
     :custom
     ;; NOTE: Set these if Python 3 is called "python3" on your system!
     (python-shell-interpreter "python3"))
+  
+#+end_src
+
+** LaTeX
+Have to review all of the packages and make sure everything plays nice, and configure various interactions etc, have to see how much LSP will do by itself.
+*** Org
+Firstly, we must set a header for our org files to use.
+#+begin_src emacs-lisp
 
   (setq org-latex-packages-alist '(("" "/Users/jure/.emacs.d/defaults/js" t)))
   ;;(setq org-latex-packages-alist nil)
+
+ #+end_src
+ 
+*** AUCTeX
+#+begin_src emacs-lisp
 
     (use-package tex-mode
       :ensure auctex)
@@ -695,6 +1104,11 @@
 
 (setq TeX-command-extra-options " --shell-escape ")
 
+#+end_src
+
+*** CDLaTeX
+#+begin_src emacs-lisp
+
 (use-package cdlatex)
 
 (setq cdlatex-command-alist
@@ -708,6 +1122,12 @@
 (add-hook 'LaTeX-mode-hook #'turn-on-org-cdlatex)
 (add-hook 'org-mode-hook   #'turn-on-org-cdlatex)
 
+
+#+end_src
+
+*** Xenops
+  I use xenops, for now only in org. Need to configure safe usage in "real" TeX files.
+#+begin_src emacs-lisp
   (use-package xenops)
 
   ;; (add-hook 'latex-mode-hook #'xenops-mode)
@@ -731,9 +1151,48 @@
 ;(setq xenops-math-latex-process 'imagemagick)
 ;(setq xenops-math-latex-process 'dvipng)
 
+#+end_src
+
+A custom renderer that uses pdf as an intermediary format and converts it to the vector format =svg= to allow for good =tikz-cd= rendering. Need to find a good way to convert the pdf to svg tho.
+
+#+begin_src emacs-lisp :tangle no
+
+(add-to-list 'xenops-math-latex-process-alist
+	     '(pdfsvg
+	       :programs ("pdflatex" "pdf2svg")
+	       :description "pdf > svg"
+	       :message "you need to install the programs: latex and dvisvgm."
+	       :image-input-type "pdf"
+	       :image-output-type "svg"
+	       :image-size-adjust (1.7 . 1.5)
+	       :latex-compiler ("pdflatex -interaction nonstopmode -shell-escape -output-directory %o %f")
+	       :image-converter ("pdf2svg %f %O")))
+
+(add-to-list 'xenops-math-latex-process-alist
+	      '(my/imagemagick
+		:programs ("latex" "convert")
+	       :description "pdf > png"
+	       :message "you need to install the programs: latex and imagemagick."
+	       :image-input-type "pdf"
+	       :image-output-type "png"
+	       :image-size-adjust (0.5 . 0.5)
+	       :latex-compiler ("pdflatex -interaction nonstopmode -shell-escape -output-directory %o %f")
+	       :image-converter ("convert -density %D -trim -antialias %f -quality 400 %O")))
+
+
+(setq xenops-math-latex-process 'my/imagemagick)
+  
+
+#+end_src
+
+*** Standalone latex fragments
+I need commutative diagrams in org mode and anki, hence i want to keep a tex folder in my org-roam directory which contains various snippets. Should autocompile to png and get inserted by name as a link. If no file exists yet, makes one with a cool snippet.
+
+#+begin_src emacs-lisp
+
 (defun get-current-standalones-latex (match-p)
   (completing-read
-		 "Enter standalone name: "
+		 "Enter diagram name: "
 		 (mapcar (lambda (x) (s-chop-suffix ".tex" x))
 			 (-filter (lambda (x) (s-suffix? ".tex" x))
 				  (directory-files (concat org-roam-directory "/tex"))))
@@ -747,14 +1206,14 @@
     (call-process-shell-command (concat "convert -density 200 -quality 100 " fname ".pdf " fname ".png"))))
 
 (defun compile-current-standalone-latex ()
-  (compile-standalone-latex
-   (s-chop-suffix ".tex"
-		  (s-chop-prefix (concat org-roam-directory "/tex/") buffer-file-truename))))
+  )
 
 (defun make-new-standalone-latex (fname)
   "Makes a new file with the proper template."
-  (find-file-other-window (concat org-roam-directory "/tex/" fname ".tex"))
-  (yas-expand-snippet (yas-lookup-snippet "standalone_latex_template" 'latex-mode)))
+  (save-window-excursion
+    (find-file-other-window (concat org-roam-directory "/tex/" fname ".tex"))
+    (yas-expand-snippet (yas-lookup-snippet "standalone_latex_template" 'latex-mode))
+    ))
 
 (defun open-standalone-latex (fname)
   "Merely opens one of the possible snippets."
@@ -765,18 +1224,33 @@
   "Ask for user's diagram name with completions etc and insert the link to it.
 If the file doesn't exist, visit a new .tex buffer and insert the right snippet."
   (interactive (list (get-current-standalones-latex nil)))
-  (org-insert-link nil (concat "file:tex/" fname ".png"))
   (unless (file-exists-p (concat org-roam-directory "/tex/" fname ".tex"))
-      (make-new-standalone-latex fname)))
+      (make-new-standalone-latex fname))
+  (org-insert-link nil (concat "file:tex/" fname ".png"))
+  )
 
+#+end_src
+
+** Racket
+#+begin_src emacs-lisp
 (use-package racket-mode)
+#+end_src
 
+
+* Programming/editing stuff
+** Auto-activating-snippets
+#+begin_src emacs-lisp
   (use-package aas
     :hook (LaTeX-mode . aas-activate-for-major-mode)
     :hook (org-mode . aas-activate-for-major-mode))
 
   (use-package laas
   :hook (LaTeX-mode . laas-mode))
+  
+  #+end_src
+** YASnippets
+Snippets, configuration stolen from [[https://gist.github.com/karthink/7d89df35ee9b7ac0c93d0177b862dadb][here]]. Should look into how it works.
+#+begin_src emacs-lisp
 
   ;; Yasnippet settings
   (use-package yasnippet)
@@ -784,8 +1258,18 @@ If the file doesn't exist, visit a new .tex buffer and insert the right snippet.
 
   (use-package yasnippet-snippets)
 
+#+end_src
+
+** Expand region
+#+begin_src emacs-lisp
+
   (use-package expand-region)
   (global-set-key (kbd "s-f") 'er/expand-region)
+
+  #+end_src
+  
+** Multiple cursors
+#+begin_src emacs-lisp
 
   (use-package multiple-cursors)
   (global-set-key (kbd "s-<down>") 'mc/mark-next-like-this)
@@ -799,3 +1283,6 @@ If the file doesn't exist, visit a new .tex buffer and insert the right snippet.
   ;; Makes it so only =C-g= quits.
   (define-key mc/keymap (kbd "<return>") nil)
   (global-set-key (kbd "s-<mouse-1>") 'mc/add-cursor-on-click)
+
+#+end_src
+

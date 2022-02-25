@@ -41,9 +41,6 @@ Currently using Emacs-Plus 28 from [[https://github.com/d12frosted/homebrew-emac
                 racket-repl-mode-hook))
   (add-hook mode (lambda () (display-line-numbers-mode 0))))
 
-;; Make ESC quitflashcards
-(global-set-key (kbd "<escape>") 'keyboard-escape-quit)
-
 ;; Switching between frames of emacs in line with my common shortcuts
 (global-set-key (kbd "C-s-<tab>") #'ns-next-frame)
 
@@ -54,6 +51,15 @@ Currently using Emacs-Plus 28 from [[https://github.com/d12frosted/homebrew-emac
 
 (server-start) ;Start emacs as a server to be used externally.
 
+(defun ask-before-closing ()
+  "Close only if y was pressed."
+  (interactive)
+  (if (y-or-n-p (format "Are you sure you want to close emacs? "))
+      (save-buffers-kill-emacs)                                                                                           
+    (message "Canceled frame close")))
+
+
+(global-set-key (kbd "C-x C-c") 'ask-before-closing)
 
 #+end_src
 
@@ -181,6 +187,8 @@ This disables the built-in package manager from loading.
 (global-set-key (kbd "C-x b") 'counsel-switch-buffer)
 (global-set-key (kbd "s-b") 'counsel-switch-buffer)
 
+(setq ivy-dynamic-exhibit-delay-ms 250)
+
 #+end_src
 
 ** Marginalia
@@ -292,12 +300,16 @@ Makes it so yanking/typing over a selected region of text deletes what is alread
   (electric-pair-mode 1)
 
   ;; Inhibit the symbol less so it can be used for snippets in org
-  (add-function
+(add-function
    :before-until electric-pair-inhibit-predicate
    (lambda (c) (eq c ?<)))
 
   (show-paren-mode 1)
   (setq show-paren-delay 0)
+
+  #+end_src
+  
+#+begin_src emacs-lisp :tangle no
 
   (use-package paredit) ; Lol?
 
@@ -320,7 +332,52 @@ Automatically update buffers changed on disk.
 (setq global-auto-revert-non-file-buffers t)
 #+end_src
 
+*** God-mode
+Adds a modal mode above the usual stuffs. [[https://github.com/emacsorphanage/god-mode][github]]
 
+#+begin_src emacs-lisp
+
+(use-package god-mode)
+
+(global-set-key (kbd "<escape>") #'god-local-mode)
+
+(defun my-god-mode-update-cursor-type ()
+  (setq cursor-type (if (or god-local-mode buffer-read-only) 'box 'bar)))
+
+(define-key god-local-mode-map (kbd ".") #'repeat)
+
+(define-key god-local-mode-map (kbd "i") #'god-local-mode)
+(define-key god-local-mode-map (kbd "z") #'repeat)
+
+(global-set-key (kbd "C-x C-1") #'delete-other-windows)
+(global-set-key (kbd "C-x C-2") #'split-window-below)
+(global-set-key (kbd "C-x C-3") #'split-window-right)
+(global-set-key (kbd "C-x C-0") #'delete-window)
+
+(define-key god-local-mode-map (kbd "[") #'backward-paragraph)
+(define-key god-local-mode-map (kbd "]") #'forward-paragraph)
+
+
+(add-hook 'post-command-hook #'my-god-mode-update-cursor-type)
+
+#+end_src
+** Libraries and stuff
+#+begin_src emacs-lisp
+
+(use-package dash)
+(use-package s)
+
+#+end_src
+** Mark and selection stuff
+#+begin_src emacs-lisp
+
+(defun backward-mark-word ()
+  (interactive)
+  (mark-word -1))
+
+(global-set-key (kbd "C-@") #'backward-mark-word)
+
+#+end_src
 * General packages
 ** Rainbow delimiters
 #+begin_src emacs-lisp
@@ -341,6 +398,8 @@ Automatically update buffers changed on disk.
     :diminish which-key-mode
     :config
     (setq which-key-idle-delay 0))
+
+(which-key-enable-god-mode-support)
 
  #+end_src
 
@@ -449,7 +508,7 @@ A better pdf reader for emacs, here specifically for use with org-noter
   (set-terminal-coding-system 'utf-8)
   (set-keyboard-coding-system 'utf-8)
 
-(setq org-image-actual-width '(200))
+(setq org-image-actual-width nil)
 
 #+end_src
 
@@ -629,26 +688,28 @@ if it lacks a name, or use the hyperlink itself in that case.
 ** Base
 #+begin_src emacs-lisp
 
-  (use-package org-roam
-    :init
-    (setq org-roam-v2-ack t)
-    :custom
-    (org-roam-directory "~/Documents/org")
-    (org-roam-completion-everywhere t)
-    :bind (("C-c n l" . org-roam-buffer-toggle)
-           ("C-c n f" . org-roam-node-find)
-           ("C-c n i" . org-roam-node-insert)
-           ("C-c n c" . org-roam-capture)
-           ("C-c n d" . org-roam-dailies-map)
-           ("C-c n n r" . org-roam-refile)
-           ("C-c n n g" . org-id-get-create)
-           ("C-c n p" . anki-editor-push-notes)
-           ("C-c n n p" . anki/push-all)
-           ("C-c n n t" . org-roam-extract-subtree)
-           ("C-c n n a" . org-roam-alias-add)
-           :map org-mode-map
-           ("C-M-i"    . completion-at-point)
-           ("C-c C-x C-l" . nil)) ; Built in LaTeX previews are an annoyance with xenops.
+(use-package org-roam
+  :init
+  (setq org-roam-v2-ack t)
+  :custom
+  (org-roam-directory "~/Documents/org")
+  (org-roam-completion-everywhere t)
+  :bind (("C-c n l" . org-roam-buffer-toggle)
+         ("C-c n f" . org-roam-node-find)
+         ("C-c n i" . org-roam-node-insert)
+         ("C-c n c" . org-roam-capture)
+         ("C-c n d" . org-roam-dailies-map)
+         ("C-c n n r" . org-roam-refile)
+         ("C-c n n g" . org-id-get-create)
+         ("C-c n p" . anki-editor-push-notes)
+         ("C-c n n p" . anki/push-all)
+         ("C-c n n t" . org-roam-extract-subtree)
+         ("C-c n n a" . org-roam-alias-add)
+         :map org-mode-map
+         ("C-M-i"    . completion-at-point)
+         ("C-c C-x C-l" . nil); Built in LaTeX previews are an annoyance with xenops.
+	 ("C-c n l" . insert-standalone-latex)
+	 ("C-c n n l" . open-standalone-latex))
     :config
     (org-roam-setup))
 
@@ -687,7 +748,6 @@ Fuck it, I'm making my own damn Xanadu.
 
 
 #+end_src
-
 
 ** Org-roam-ui
 A package which allows one to view their nodes as a graph, using a web interface. [[https://github.com/org-roam/org-roam-ui][Link]].
@@ -771,7 +831,6 @@ A library for org-mode stuff.
   (use-package vulpea)
   
 #+end_src
-
 
 ** Anki-editor
 Allows editing of anki flashcards directly in org files using tags.
@@ -1043,6 +1102,8 @@ Firstly, we must set a header for our org files to use.
     (add-hook 'TeX-after-compilation-finished-functions
                #'TeX-revert-document-buffer)
 
+(setq TeX-command-extra-options " --shell-escape ")
+
 #+end_src
 
 *** CDLaTeX
@@ -1063,8 +1124,6 @@ Firstly, we must set a header for our org files to use.
 
 
 #+end_src
-
-
 
 *** Xenops
   I use xenops, for now only in org. Need to configure safe usage in "real" TeX files.
@@ -1125,6 +1184,52 @@ A custom renderer that uses pdf as an intermediary format and converts it to the
   
 
 #+end_src
+
+*** Standalone latex fragments
+I need commutative diagrams in org mode and anki, hence i want to keep a tex folder in my org-roam directory which contains various snippets. Should autocompile to png and get inserted by name as a link. If no file exists yet, makes one with a cool snippet.
+
+#+begin_src emacs-lisp
+
+(defun get-current-standalones-latex (match-p)
+  (completing-read
+		 "Enter standalone name: "
+		 (mapcar (lambda (x) (s-chop-suffix ".tex" x))
+			 (-filter (lambda (x) (s-suffix? ".tex" x))
+				  (directory-files (concat org-roam-directory "/tex"))))
+		 nil
+		 match-p))
+
+(defun compile-standalone-latex (fname)
+  "Compiles the fname standalone latex fragment first into pdf, then converts it to png."
+  (let ((default-directory (concat org-roam-directory "/tex/")))
+    (call-process-shell-command (concat "pdflatex -interaction nonstopmode -shell-escape " fname))
+    (call-process-shell-command (concat "convert -density 200 -quality 100 " fname ".pdf " fname ".png"))))
+
+(defun compile-current-standalone-latex ()
+  (compile-standalone-latex
+   (s-chop-suffix ".tex"
+		  (s-chop-prefix (concat org-roam-directory "/tex/") buffer-file-truename))))
+
+(defun make-new-standalone-latex (fname)
+  "Makes a new file with the proper template."
+  (find-file-other-window (concat org-roam-directory "/tex/" fname ".tex"))
+  (yas-expand-snippet (yas-lookup-snippet "standalone_latex_template" 'latex-mode)))
+
+(defun open-standalone-latex (fname)
+  "Merely opens one of the possible snippets."
+  (interactive (list (get-current-standalones-latex t)))
+  (find-file-other-window (concat org-roam-directory "/tex/" fname ".tex")))
+
+(defun insert-standalone-latex (fname)
+  "Ask for user's diagram name with completions etc and insert the link to it.
+If the file doesn't exist, visit a new .tex buffer and insert the right snippet."
+  (interactive (list (get-current-standalones-latex nil)))
+  (org-insert-link nil (concat "file:tex/" fname ".png"))
+  (unless (file-exists-p (concat org-roam-directory "/tex/" fname ".tex"))
+      (make-new-standalone-latex fname)))
+
+#+end_src
+
 ** Racket
 #+begin_src emacs-lisp
 (use-package racket-mode)
@@ -1142,7 +1247,7 @@ A custom renderer that uses pdf as an intermediary format and converts it to the
   :hook (LaTeX-mode . laas-mode))
   
   #+end_src
-** Yasnippets
+** YASnippets
 Snippets, configuration stolen from [[https://gist.github.com/karthink/7d89df35ee9b7ac0c93d0177b862dadb][here]]. Should look into how it works.
 #+begin_src emacs-lisp
 
@@ -1176,7 +1281,6 @@ Snippets, configuration stolen from [[https://gist.github.com/karthink/7d89df35e
 
   ;; Makes it so only =C-g= quits.
   (define-key mc/keymap (kbd "<return>") nil)
-
   (global-set-key (kbd "s-<mouse-1>") 'mc/add-cursor-on-click)
 
 #+end_src

@@ -7,6 +7,9 @@
    '("4f1d2476c290eaa5d9ab9d13b60f2c0f1c8fa7703596fa91b235db7f99a9441b" default))
  '(org-agenda-files
    '("~/Documents/org/20220214100718-realne_podmnogoterosti.org" "/Users/jure/Documents/org/20211201003254-financial.org" "/Users/jure/Documents/org/20211121211808-awodey_category_theory.org" "/Users/jure/Documents/org/20211117164414-inbox.org" "/Users/jure/Documents/org/20211116204149-meta_notetaking.org" "/Users/jure/Documents/org/20220213212024-paredit.org" "/Users/jure/Documents/org/daily/2022-02-14.org" "/Users/jure/Documents/org/20220211173847-tech.org" "/Users/jure/Documents/org/20211125224815-goals.org" "/Users/jure/Documents/org/20211117183951-tasks.org" "/Users/jure/Documents/org/20220215121721-kvocientni_prostori.org" "/Users/jure/Documents/org/20211125032426-emacs.org"))
+ '(safe-local-variable-values
+   '((eval add-hook 'after-save-hook #'compile-current-standalone-latex nil t)
+     (TeX-command-extra-options . " --shell-escape ")))
  '(warning-suppress-log-types '((comp)))
  '(warning-suppress-types '((emacs))))
 (custom-set-faces

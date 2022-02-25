@@ -1,0 +1,15 @@
+# -*- mode: snippet -*-
+# name: standalone_latex_template
+# key: slt
+# --
+
+\documentclass{standalone}
+\usepackage{/Users/jure/.emacs.d/defaults/js}
+\usepackage[normalem]{ulem}
+\pagestyle{empty}             % do not remove
+
+\begin{document}
+
+$0
+
+\end{document}

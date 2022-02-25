@@ -6,6 +6,8 @@
 \RequirePackage[T1]{fontenc}
 \usepackage{lmodern}
 
+\usepackage{atveryend}
+
 \RequirePackage[shortlabels]{enumitem}
 \RequirePackage{amsmath}
 \RequirePackage{amsthm}
@@ -30,6 +32,8 @@
 %\usepackage{csquotes} 
 \usepackage{tikz-cd}
 \usetikzlibrary{babel}
+\usetikzlibrary{calc}
+\usetikzlibrary{decorations.pathmorphing}
 
 \providecommand{\N}{\mathbb{N}}
 \providecommand{\Z}{\mathbb{Z}}
@@ -67,3 +71,22 @@
 \providecommand{\eval}[3]{\left. #1\right|_{#2}^{#3}}
 \providecommand{\skl}[1]{\left\langle #1\right\rangle}
 \providecommand{\kvoc}[2]{{#1/_{#2}}}
+
+% Quiver commands
+
+% A TikZ style for curved arrows of a fixed height, due to AndréC.
+\tikzset{curve/.style={settings={#1},to path={(\tikztostart)
+    .. controls ($(\tikztostart)!\pv{pos}!(\tikztotarget)!\pv{height}!270:(\tikztotarget)$)
+    and ($(\tikztostart)!1-\pv{pos}!(\tikztotarget)!\pv{height}!270:(\tikztotarget)$)
+    .. (\tikztotarget)\tikztonodes}},
+    settings/.code={\tikzset{quiver/.cd,#1}
+        \def\pv##1{\pgfkeysvalueof{/tikz/quiver/##1}}},
+    quiver/.cd,pos/.initial=0.35,height/.initial=0}
+
+% TikZ arrowhead/tail styles.
+\tikzset{tail reversed/.code={\pgfsetarrowsstart{tikzcd to}}}
+\tikzset{2tail/.code={\pgfsetarrowsstart{Implies[reversed]}}}
+\tikzset{2tail reversed/.code={\pgfsetarrowsstart{Implies}}}
+% TikZ arrow styles.
+\tikzset{no body/.style={/tikz/dash pattern=on 0 off 1mm}}
+
