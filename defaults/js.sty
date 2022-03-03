@@ -26,6 +26,8 @@
 \renewcommand{\arraystretch}{1.4}
 \setcounter{MaxMatrixCols}{20}
 
+\usepackage{readarray}
+
 %\usepackage{polyglossia}
 \usepackage{tikz}
 
@@ -53,6 +55,8 @@
 \DeclareMathOperator{\aut}{Aut}
 \DeclareMathOperator{\Int}{Int}
 \DeclareMathOperator{\grad}{grad}
+\DeclareMathOperator{\divv}{div}
+\DeclareMathOperator{\rot}{rot}
 \DeclareMathOperator{\Cl}{Cl}
 \DeclareMathOperator{\Fr}{Fr}
 \DeclareMathOperator{\dom}{dom}
@@ -61,6 +65,8 @@
 \DeclareMathOperator{\argmin}{argmin}
 \DeclareMathOperator{\tr}{tr}
 \DeclareMathOperator{\charf}{char}
+\DeclareMathOperator{\graf}{Graf}
+
 
 \providecommand{\pot}{\mathcal{P}}
 \providecommand{\rel}[1]{\mathrel{#1}}
@@ -73,6 +79,8 @@
 \providecommand{\eval}[3]{\left. #1\right|_{#2}^{#3}}
 \providecommand{\skl}[1]{\left\langle #1\right\rangle}
 \providecommand{\kvoc}[2]{{#1/_{#2}}}
+
+\providecommand{\vecc}[2]{\begin{bmatrix} #1 \\ #2 \end{bmatrix}}
 
 % Quiver commands
 

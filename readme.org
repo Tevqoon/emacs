@@ -9,9 +9,10 @@ as is documented later.
 * Meta
 Currently using Emacs-Plus 28 from [[https://github.com/d12frosted/homebrew-emacs-plus][here]] compiled with =--with-native-comp=, =--with-imagemagick= and =--with-xwidgets=. Compile time was cca 30min on 2.9Ghz 2017 MBP. Looking forward to testing on M1 Pro.
 
+Gonna try out emacs 29 for smoother scrolling. brb
+
 
 * General configs
-
 ** Initialization
 #+begin_src emacs-lisp
 ;; (setq debug-on-error t)
@@ -51,18 +52,25 @@ Currently using Emacs-Plus 28 from [[https://github.com/d12frosted/homebrew-emac
 
 (server-start) ;Start emacs as a server to be used externally.
 
-(defun ask-before-closing ()
-  "Close only if y was pressed."
-  (interactive)
-  (if (y-or-n-p (format "Are you sure you want to close emacs? "))
-      (save-buffers-kill-emacs)                                                                                           
-    (message "Canceled frame close")))
+;; (defun ask-before-closing ()
+;;   "Close only if y was pressed."
+;;   (interactive)
+;;   (if (y-or-n-p (format "Are you sure you want to close emacs? "))
+;;       (save-buffers-kill-emacs)                                                                               
+;;     (message "Canceled frame close")))
 
+;;(global-set-key (kbd "C-x C-c") 'ask-before-closing)
 
-(global-set-key (kbd "C-x C-c") 'ask-before-closing)
+(setq confirm-kill-emacs #'y-or-n-p) ; Fucking ask me first i stg
 
 #+end_src
 
+** Registers
+#+begin_src emacs-lisp
+
+(set-register ?r '(file . "~/.emacs.d/readme.org"))
+
+#+end_src
 ** Padding etc
 
 #+begin_src emacs-lisp
@@ -378,6 +386,8 @@ Adds a modal mode above the usual stuffs. [[https://github.com/emacsorphanage/go
 (global-set-key (kbd "C-@") #'backward-mark-word)
 
 #+end_src
+
+
 * General packages
 ** Rainbow delimiters
 #+begin_src emacs-lisp
@@ -683,6 +693,18 @@ if it lacks a name, or use the hyperlink itself in that case.
   (use-package org-ref)
 #+end_src
 
+** Minor packages
+*** Org-download
+#+begin_src emacs-lisp
+
+(use-package org-download)
+
+;; Drag-and-drop to `dired`
+(add-hook 'dired-mode-hook 'org-download-enable)
+
+
+#+end_src
+
 
 * Org-roam
 ** Base
@@ -694,7 +716,7 @@ if it lacks a name, or use the hyperlink itself in that case.
   :custom
   (org-roam-directory "~/Documents/org")
   (org-roam-completion-everywhere t)
-  :bind (("C-c n l" . org-roam-buffer-toggle)
+  :bind (("C-c n b " . org-roam-buffer-toggle)
          ("C-c n f" . org-roam-node-find)
          ("C-c n i" . org-roam-node-insert)
          ("C-c n c" . org-roam-capture)
@@ -856,10 +878,7 @@ Allows editing of anki flashcards directly in org files using tags.
     ("C-c n e" . deft)
     )
 
-  (add-hook 'deft-mode-hook (lambda () (deft-refresh)))
-  ;; Refresh the looked at files on running deft, might be slow long-term
-
-      (defun cm/deft-parse-title (file contents)
+(defun cm/deft-parse-title (file contents)
     "Parse the given FILE and CONTENTS and determine the title.
   If `deft-use-filename-as-title' is nil, the title is taken to
   be the first non-empty line of the FILE.  Else the base name of the FILE is

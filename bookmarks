@@ -8,10 +8,10 @@
  (rear-context-string . "680B][@Tasks]]\n\n")
  (position . 403))
 ("org-capture-last-stored"
- (filename . "~/Documents/org/20220224195000-razpadno_polje.org")
- (front-context-string . "\nRazpadno [[id:E")
- (rear-context-string . " Razpadno polje\n")
- (position . 92))
+ (filename . "~/Documents/org/20220302120305-konveksnost.org")
+ (front-context-string)
+ (rear-context-string . "le: Konveksnost\n")
+ (position . 89))
 ("org-refile-last-stored"
  (filename . "~/Documents/org/20211117164414-inbox.org")
  (front-context-string . "** TODO Add bett")

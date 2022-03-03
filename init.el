@@ -35,15 +35,18 @@
 
 (server-start) ;Start emacs as a server to be used externally.
 
-(defun ask-before-closing ()
-  "Close only if y was pressed."
-  (interactive)
-  (if (y-or-n-p (format "Are you sure you want to close emacs? "))
-      (save-buffers-kill-emacs)                                                                                           
-    (message "Canceled frame close")))
+;; (defun ask-before-closing ()
+;;   "Close only if y was pressed."
+;;   (interactive)
+;;   (if (y-or-n-p (format "Are you sure you want to close emacs? "))
+;;       (save-buffers-kill-emacs)                                                                               
+;;     (message "Canceled frame close")))
 
+;;(global-set-key (kbd "C-x C-c") 'ask-before-closing)
 
-(global-set-key (kbd "C-x C-c") 'ask-before-closing)
+(setq confirm-kill-emacs #'y-or-n-p) ; Fucking ask me first i stg
+
+(set-register ?r '(file . "~/.emacs.d/readme.org"))
 
   (defun efs/org-mode-visual-fill ()
     "Sets the width just so that there's a little bit
@@ -455,13 +458,18 @@
 
   (use-package org-ref)
 
+(use-package org-download)
+
+;; Drag-and-drop to `dired`
+(add-hook 'dired-mode-hook 'org-download-enable)
+
 (use-package org-roam
   :init
   (setq org-roam-v2-ack t)
   :custom
   (org-roam-directory "~/Documents/org")
   (org-roam-completion-everywhere t)
-  :bind (("C-c n l" . org-roam-buffer-toggle)
+  :bind (("C-c n b " . org-roam-buffer-toggle)
          ("C-c n f" . org-roam-node-find)
          ("C-c n i" . org-roam-node-insert)
          ("C-c n c" . org-roam-capture)
@@ -543,10 +551,7 @@
     ("C-c n e" . deft)
     )
 
-  (add-hook 'deft-mode-hook (lambda () (deft-refresh)))
-  ;; Refresh the looked at files on running deft, might be slow long-term
-
-      (defun cm/deft-parse-title (file contents)
+(defun cm/deft-parse-title (file contents)
     "Parse the given FILE and CONTENTS and determine the title.
   If `deft-use-filename-as-title' is nil, the title is taken to
   be the first non-empty line of the FILE.  Else the base name of the FILE is
