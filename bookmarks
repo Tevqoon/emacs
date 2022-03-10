@@ -8,10 +8,10 @@
  (rear-context-string . "680B][@Tasks]]\n\n")
  (position . 403))
 ("org-capture-last-stored"
- (filename . "~/Documents/org/20220302120305-konveksnost.org")
+ (filename . "~/Documents/org/20220310142407-izreki_o_izomorfizmu_grup.org")
  (front-context-string)
- (rear-context-string . "le: Konveksnost\n")
- (position . 89))
+ (rear-context-string . "zomorfizmu grup\n")
+ (position . 103))
 ("org-refile-last-stored"
  (filename . "~/Documents/org/20211117164414-inbox.org")
  (front-context-string . "** TODO Add bett")

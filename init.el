@@ -238,12 +238,36 @@
 
 (use-package dash)
 (use-package s)
+(use-package cl-lib)
 
-(defun backward-mark-word ()
-  (interactive)
-  (mark-word -1))
+(defun dump-vars-to-file (varlist filename)
+  "simplistic dumping of variables in VARLIST to a file FILENAME"
+  (save-excursion
+    (let ((buf (find-file-noselect filename)))
+      (set-buffer buf)
+      (erase-buffer)
+      (dump varlist buf)
+      (save-buffer)
+      (kill-buffer))))
 
-(global-set-key (kbd "C-@") #'backward-mark-word)
+(defun dump (varlist buffer)
+  "insert into buffer the setq statement to recreate the variables in VARLIST"
+  (mapc (lambda (var) (print (list 'setq var (list 'quote (symbol-value var)))
+			     buffer))
+	varlist))
+
+(defvar closing-variables nil
+  "Variables to dump to a file upon closing emacs.")
+
+(defvar closing-variables-filename "~/.emacs.d/variables.el"
+  "The filename in which closing variables are stored.")
+
+(load closing-variables-filename)
+
+(defun dump-closing-variables ()
+  (dump-vars-to-file closing-variables closing-variables-filename))
+
+(add-hook 'kill-emacs-hook (lambda () (dump-closing-variables))) ; Write on exit
 
   ;; Uses rainbow colors for matching parens etc
   (use-package rainbow-delimiters
@@ -385,7 +409,7 @@
   (add-hook 'org-mode-hook (lambda () (org-pretty-table-mode)))
 
   (setq org-todo-keywords
-        '((sequence "TODO(t)" "NEXT(n)" "EXPLORE(e)" "HOLD(h)" "WAITING(w)" "|" "DONE(d!)" "CANCELLED(c!)")))
+        '((sequence "TODO(t)" "NEXT(n)" "REFILE(r)" "EXPLORE(e)" "HOLD(h)" "WAITING(w)" "|" "DONE(d!)" "CANCELLED(c!)")))
 
   ;; So it doesn't ruin window configs
   (setq org-agenda-window-setup 'current-window) 
@@ -463,6 +487,20 @@
 ;; Drag-and-drop to `dired`
 (add-hook 'dired-mode-hook 'org-download-enable)
 
+(straight-use-package
+ '(org-remark
+   :type git :host github :repo "nobiot/org-remark"))
+
+(org-remark-global-tracking-mode +1)
+
+(define-key global-map (kbd "C-c n m") #'org-remark-mark)
+
+(with-eval-after-load 'org-remark
+  (define-key org-remark-mode-map (kbd "C-c n o") #'org-remark-open)
+  (define-key org-remark-mode-map (kbd "C-c n ]") #'org-remark-view-next)
+  (define-key org-remark-mode-map (kbd "C-c n [") #'org-remark-view-prev)
+  (define-key org-remark-mode-map (kbd "C-c n r") #'org-remark-remove))
+
 (use-package org-roam
   :init
   (setq org-roam-v2-ack t)
@@ -472,17 +510,17 @@
   :bind (("C-c n b " . org-roam-buffer-toggle)
          ("C-c n f" . org-roam-node-find)
          ("C-c n i" . org-roam-node-insert)
-         ("C-c n c" . org-roam-capture)
          ("C-c n d" . org-roam-dailies-map)
          ("C-c n n r" . org-roam-refile)
          ("C-c n n g" . org-id-get-create)
-         ("C-c n p" . anki-editor-push-notes)
+         ("C-c n p" . anki/my/push-notes)
          ("C-c n n p" . anki/push-all)
          ("C-c n n t" . org-roam-extract-subtree)
          ("C-c n n a" . org-roam-alias-add)
          :map org-mode-map
          ("C-M-i"    . completion-at-point)
          ("C-c C-x C-l" . nil); Built in LaTeX previews are an annoyance with xenops.
+	 ("C-c l" . org-store-link)
 	 ("C-c n l" . insert-standalone-latex)
 	 ("C-c n n l" . open-standalone-latex))
     :config
@@ -540,6 +578,23 @@
 
 (add-hook 'org-mode-hook (lambda () (anki-editor-mode 1)))
 
+(defvar anki-push-times-hash-table (make-hash-table :test 'equal)
+  "A hash table which keeps track of push times for all notes which anki push was called on. Is used in the function anki/my/push/notes in order to determine whether a push is necessary.")
+
+(defun anki/my/push-notes ()
+  (interactive)
+  (let* ((current-filename (file-name-nondirectory buffer-file-name))
+	 (push-time (gethash current-filename anki-push-times-hash-table))
+	 (edit-time (file-attribute-modification-time (file-attributes current-filename))))
+	 (if (or (not push-time)
+		   (time-less-p push-time edit-time))
+	   (anki-editor-push-notes)
+	   (message "No need to push."))
+	 (puthash current-filename (current-time) anki-push-times-hash-table)
+	))
+
+(add-to-list 'closing-variables 'anki-push-times-hash-table) ; Saves the update table on save and loads it on startup.
+
   (use-package deft
     :config
     (setq deft-extensions '("org")
@@ -589,9 +644,8 @@
     (member "ANKI_NOTE_TYPE" (org-buffer-property-keys)))
 
     (setq prune/ignored-files
-              '("20211119122103-someday.org"
-                "20211117183951-tasks.org"
-                "20211117164414-inbox.org")) ; These should always have project tags.
+          '("20211117183951-tasks.org"
+            "20211117164414-inbox.org")) ; These should always have project tags.
 
     (setq tag-checkers (list (cons "project"    'org/project-p)
                              (cons "flashcards" 'anki/flashcard-p)))
@@ -667,7 +721,7 @@
       "Opens the file with filename as a temporary buffer and pushes its notes."
       (save-excursion
         (with-current-buffer (find-file-noselect filename)
-          (progn (anki-editor-push-notes)))))
+          (progn (anki/my/push-notes)))))
 
     (defun anki/push-all ()
       "Maps over the files with the flashcards tag and pushes them."
@@ -705,7 +759,8 @@
 (setq cdlatex-command-alist
       '(("al" "Insert aligned environment" "" cdlatex-environment ("aligned") nil t)
 	("bm" "Insert bmatrix environment" "" cdlatex-environment ("bmatrix") nil t)
-	("se" "Insert a nice subsetequals" "\\subseteq" nil nil nil t)
+	("se" "Insert a nice subseteq" "\\subseteq" nil nil nil t)
+	("sse" "Insert a nice supseteql" "\\supseteq" nil nil nil t)
 	("imp" "implies" "\\implies" nil nil nil t)
 	("imb" "Implied" "\\impliedby" nil nil nil t)
 	))

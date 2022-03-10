@@ -9,8 +9,6 @@ as is documented later.
 * Meta
 Currently using Emacs-Plus 28 from [[https://github.com/d12frosted/homebrew-emacs-plus][here]] compiled with =--with-native-comp=, =--with-imagemagick= and =--with-xwidgets=. Compile time was cca 30min on 2.9Ghz 2017 MBP. Looking forward to testing on M1 Pro.
 
-Gonna try out emacs 29 for smoother scrolling. brb
-
 
 * General configs
 ** Initialization
@@ -374,16 +372,43 @@ Adds a modal mode above the usual stuffs. [[https://github.com/emacsorphanage/go
 
 (use-package dash)
 (use-package s)
+(use-package cl-lib)
 
 #+end_src
-** Mark and selection stuff
+** Small utilities
+*** Variable dumping
+Functions to dump variables to a file. Includes a simple utility to make a variable persistent by writing it to a file on emacs exit and loading it on load. Probably a bit unsafe if emacs gets forcefully quit etc, might be worth to periodically save them etc etc.
+
 #+begin_src emacs-lisp
 
-(defun backward-mark-word ()
-  (interactive)
-  (mark-word -1))
+(defun dump-vars-to-file (varlist filename)
+  "simplistic dumping of variables in VARLIST to a file FILENAME"
+  (save-excursion
+    (let ((buf (find-file-noselect filename)))
+      (set-buffer buf)
+      (erase-buffer)
+      (dump varlist buf)
+      (save-buffer)
+      (kill-buffer))))
 
-(global-set-key (kbd "C-@") #'backward-mark-word)
+(defun dump (varlist buffer)
+  "insert into buffer the setq statement to recreate the variables in VARLIST"
+  (mapc (lambda (var) (print (list 'setq var (list 'quote (symbol-value var)))
+			     buffer))
+	varlist))
+
+(defvar closing-variables nil
+  "Variables to dump to a file upon closing emacs.")
+
+(defvar closing-variables-filename "~/.emacs.d/variables.el"
+  "The filename in which closing variables are stored.")
+
+(load closing-variables-filename)
+
+(defun dump-closing-variables ()
+  (dump-vars-to-file closing-variables closing-variables-filename))
+
+(add-hook 'kill-emacs-hook (lambda () (dump-closing-variables))) ; Write on exit
 
 #+end_src
 
@@ -592,7 +617,7 @@ Mostly from [[https://zzamboni.org/post/beautifying-org-mode-in-emacs/][here]].
 #+begin_src emacs-lisp
 
   (setq org-todo-keywords
-        '((sequence "TODO(t)" "NEXT(n)" "EXPLORE(e)" "HOLD(h)" "WAITING(w)" "|" "DONE(d!)" "CANCELLED(c!)")))
+        '((sequence "TODO(t)" "NEXT(n)" "REFILE(r)" "EXPLORE(e)" "HOLD(h)" "WAITING(w)" "|" "DONE(d!)" "CANCELLED(c!)")))
 
   ;; So it doesn't ruin window configs
   (setq org-agenda-window-setup 'current-window) 
@@ -705,6 +730,27 @@ if it lacks a name, or use the hyperlink itself in that case.
 
 #+end_src
 
+*** Org-remark
+
+#+begin_src emacs-lisp
+
+(straight-use-package
+ '(org-remark
+   :type git :host github :repo "nobiot/org-remark"))
+
+(org-remark-global-tracking-mode +1)
+
+(define-key global-map (kbd "C-c n m") #'org-remark-mark)
+
+(with-eval-after-load 'org-remark
+  (define-key org-remark-mode-map (kbd "C-c n o") #'org-remark-open)
+  (define-key org-remark-mode-map (kbd "C-c n ]") #'org-remark-view-next)
+  (define-key org-remark-mode-map (kbd "C-c n [") #'org-remark-view-prev)
+  (define-key org-remark-mode-map (kbd "C-c n r") #'org-remark-remove))
+
+
+#+end_src
+
 
 * Org-roam
 ** Base
@@ -719,17 +765,17 @@ if it lacks a name, or use the hyperlink itself in that case.
   :bind (("C-c n b " . org-roam-buffer-toggle)
          ("C-c n f" . org-roam-node-find)
          ("C-c n i" . org-roam-node-insert)
-         ("C-c n c" . org-roam-capture)
          ("C-c n d" . org-roam-dailies-map)
          ("C-c n n r" . org-roam-refile)
          ("C-c n n g" . org-id-get-create)
-         ("C-c n p" . anki-editor-push-notes)
+         ("C-c n p" . anki/my/push-notes)
          ("C-c n n p" . anki/push-all)
          ("C-c n n t" . org-roam-extract-subtree)
          ("C-c n n a" . org-roam-alias-add)
          :map org-mode-map
          ("C-M-i"    . completion-at-point)
          ("C-c C-x C-l" . nil); Built in LaTeX previews are an annoyance with xenops.
+	 ("C-c l" . org-store-link)
 	 ("C-c n l" . insert-standalone-latex)
 	 ("C-c n n l" . open-standalone-latex))
     :config
@@ -855,6 +901,7 @@ A library for org-mode stuff.
 #+end_src
 
 ** Anki-editor
+*** Basic
 Allows editing of anki flashcards directly in org files using tags.
 #+begin_src emacs-lisp
 
@@ -862,6 +909,30 @@ Allows editing of anki flashcards directly in org files using tags.
 
 (add-hook 'org-mode-hook (lambda () (anki-editor-mode 1)))
   
+#+end_src
+
+*** Keeping track of whether a file has been updated since last push
+I only want to push if the file has changed on disk since last push. Hence we need to keep track of push times.
+
+#+begin_src emacs-lisp
+
+(defvar anki-push-times-hash-table (make-hash-table :test 'equal)
+  "A hash table which keeps track of push times for all notes which anki push was called on. Is used in the function anki/my/push/notes in order to determine whether a push is necessary.")
+
+(defun anki/my/push-notes ()
+  (interactive)
+  (let* ((current-filename (file-name-nondirectory buffer-file-name))
+	 (push-time (gethash current-filename anki-push-times-hash-table))
+	 (edit-time (file-attribute-modification-time (file-attributes current-filename))))
+	 (if (or (not push-time)
+		   (time-less-p push-time edit-time))
+	   (anki-editor-push-notes)
+	   (message "No need to push."))
+	 (puthash current-filename (current-time) anki-push-times-hash-table)
+	))
+
+(add-to-list 'closing-variables 'anki-push-times-hash-table) ; Saves the update table on save and loads it on startup.
+
 #+end_src
 ** Deft
 [[https://github.com/jrblevin/deft/issues/75][Modification for org-roam]]. 
@@ -945,9 +1016,8 @@ We also keep a list of checker functions and their respective tags.
 #+begin_src emacs-lisp
 
     (setq prune/ignored-files
-              '("20211119122103-someday.org"
-                "20211117183951-tasks.org"
-                "20211117164414-inbox.org")) ; These should always have project tags.
+          '("20211117183951-tasks.org"
+            "20211117164414-inbox.org")) ; These should always have project tags.
 
     (setq tag-checkers (list (cons "project"    'org/project-p)
                              (cons "flashcards" 'anki/flashcard-p)))
@@ -1064,13 +1134,12 @@ We advise the actual =org-agenda= function to update the agenda files to the fil
 #+end_src
 
 *** Anki stuff
-
 #+begin_src emacs-lisp
     (defun anki/push-filename (filename)
       "Opens the file with filename as a temporary buffer and pushes its notes."
       (save-excursion
         (with-current-buffer (find-file-noselect filename)
-          (progn (anki-editor-push-notes)))))
+          (progn (anki/my/push-notes)))))
 
     (defun anki/push-all ()
       "Maps over the files with the flashcards tag and pushes them."
@@ -1133,7 +1202,8 @@ Firstly, we must set a header for our org files to use.
 (setq cdlatex-command-alist
       '(("al" "Insert aligned environment" "" cdlatex-environment ("aligned") nil t)
 	("bm" "Insert bmatrix environment" "" cdlatex-environment ("bmatrix") nil t)
-	("se" "Insert a nice subsetequals" "\\subseteq" nil nil nil t)
+	("se" "Insert a nice subseteq" "\\subseteq" nil nil nil t)
+	("sse" "Insert a nice supseteql" "\\supseteq" nil nil nil t)
 	("imp" "implies" "\\implies" nil nil nil t)
 	("imb" "Implied" "\\impliedby" nil nil nil t)
 	))
