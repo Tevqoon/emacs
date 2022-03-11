@@ -46,7 +46,18 @@
 
 (setq confirm-kill-emacs #'y-or-n-p) ; Fucking ask me first i stg
 
+;; utf-8 ;; 
+(setq locale-coding-system 'utf-8)
+(set-selection-coding-system 'utf-8)
+(prefer-coding-system 'utf-8)
+(set-default-coding-systems 'utf-8)
+(set-terminal-coding-system 'utf-8)
+(set-keyboard-coding-system 'utf-8)
+
+(setq make-backup-files nil) ; don't litter
+
 (set-register ?r '(file . "~/.emacs.d/readme.org"))
+(set-register ?t '(file . "~/Documents/org/tasks.org"))
 
   (defun efs/org-mode-visual-fill ()
     "Sets the width just so that there's a little bit
@@ -225,6 +236,8 @@
 (define-key god-local-mode-map (kbd "i") #'god-local-mode)
 (define-key god-local-mode-map (kbd "z") #'repeat)
 
+(define-key god-local-mode-map (kbd "S-SPC") #'open-org-agenda)
+
 (global-set-key (kbd "C-x C-1") #'delete-other-windows)
 (global-set-key (kbd "C-x C-2") #'split-window-below)
 (global-set-key (kbd "C-x C-3") #'split-window-right)
@@ -265,6 +278,8 @@
 (load closing-variables-filename)
 
 (defun dump-closing-variables ()
+  "Writes all of the variables in the list closing-variables to the file closing-variables-filename"
+  (interactive)
   (dump-vars-to-file closing-variables closing-variables-filename))
 
 (add-hook 'kill-emacs-hook (lambda () (dump-closing-variables))) ; Write on exit
@@ -347,13 +362,6 @@
     :custom
     (org-bullets-bullet-list '("◉" "○" "●" "○" "●" "○" "●")))
 
-  ;; utf-8 ;; 
-  (setq locale-coding-system 'utf-8)
-  (set-selection-coding-system 'utf-8)
-  (prefer-coding-system 'utf-8)
-  (set-default-coding-systems 'utf-8)
-  (set-terminal-coding-system 'utf-8)
-  (set-keyboard-coding-system 'utf-8)
 
 (setq org-image-actual-width nil)
 
@@ -414,6 +422,8 @@
   ;; So it doesn't ruin window configs
   (setq org-agenda-window-setup 'current-window) 
 
+
+
   ;; Save org buffers after refiling
   (advice-add 'org-refile :after 'org-save-all-org-buffers)
   (advice-add 'org-archive-subtree :after 'org-save-all-org-buffers)
@@ -423,25 +433,57 @@
   (setq org-agenda-start-with-log-mode t)
   (setq org-log-done 'time)
   (setq org-log-into-drawer t)
+(setq org-agenda-start-on-weekday nil)
+(setq org-reverse-note-order t)
+ '(org-fast-tag-selection-single-key (quote expert))
 
-  (setq org-agenda-custom-commands
-        '(("d" "Dashboard"
-           ((agenda "" ((org-deadline-warning-days 7)))
-            (todo "NEXT"
-                  ((org-agenda-overriding-header "Next Tasks")))
-            (tags-todo "agenda/ACTIVE" ((org-agenda-overriding-header "Active Projects")))))
 
-          ("n" "Next Tasks"
-           ((todo "NEXT"
-                  ((org-agenda-overriding-header "Next Tasks")))))))
+(defun air-org-skip-subtree-if-priority (priority)
+  "Skip an agenda subtree if it has a priority of PRIORITY.
 
-  (setq org-capture-templates
-        `(("t" "Task" entry (file "~/Documents/org/20211117183951-tasks.org")
-           "* TODO %?\n  %U\n  %a\n  %i" :empty-lines 1)))
+PRIORITY may be one of the characters ?A, ?B, or ?C."
+  (let ((subtree-end (save-excursion (org-end-of-subtree t)))
+        (pri-value (* 1000 (- org-lowest-priority priority)))
+        (pri-current (org-get-priority (thing-at-point 'line t))))
+    (if (= pri-value pri-current)
+        subtree-end
+      nil)))
 
-  (define-key global-map (kbd "M-i")
-    (lambda
-      () (interactive) (org-capture)))
+(defun air-org-skip-subtree-if-habit ()
+  "Skip an agenda entry if it has a STYLE property equal to \"habit\"."
+  (let ((subtree-end (save-excursion (org-end-of-subtree t))))
+    (if (string= (org-entry-get nil "STYLE") "habit")
+        subtree-end
+      nil)))
+
+(setq org-agenda-custom-commands
+   (quote (
+	   ("w" todo "WAITING" nil)
+	   ("u" alltodo ""
+	    ((org-agenda-skip-function
+	      (lambda nil
+		(org-agenda-skip-entry-if (quote scheduled) (quote deadline)
+					  (quote regexp) "\n]+>")))
+	     (org-agenda-overriding-header "Unscheduled TODO entries: ")))
+	   ("d" "Daily agenda and all TODOs"
+            ((tags "PRIORITY=\"A\""
+                   ((org-agenda-skip-function '(org-agenda-skip-entry-if 'todo 'done))
+                    (org-agenda-overriding-header "High-priority unfinished tasks:")))
+	     (todo "NEXT" ((org-agenda-skip-function '(or (air-org-skip-subtree-if-priority ?A)))
+			   (org-agenda-overriding-header "Up next: ")))
+	     (agenda "" nil)
+	     (todo "REFILE" ((org-agenda-overriding-header "Things to refile: ")))
+             (alltodo ""
+                      ((org-agenda-skip-function '(or (air-org-skip-subtree-if-habit)
+                                                      (air-org-skip-subtree-if-priority ?A)
+                                                      (org-agenda-skip-if nil '(scheduled deadline))
+						      (org-agenda-skip-entry-if 'todo '("NEXT" "REFILE"))))
+                       (org-agenda-overriding-header "All normal priority tasks:"))))
+            ))))
+
+(defun open-org-agenda ()
+  (interactive)
+  (org-agenda nil "d"))
 
     (org-babel-do-load-languages
      'org-babel-load-languages
@@ -517,6 +559,7 @@
          ("C-c n n p" . anki/push-all)
          ("C-c n n t" . org-roam-extract-subtree)
          ("C-c n n a" . org-roam-alias-add)
+	 ("C-c n c" . org-capture-task)
          :map org-mode-map
          ("C-M-i"    . completion-at-point)
          ("C-c C-x C-l" . nil); Built in LaTeX previews are an annoyance with xenops.
@@ -541,6 +584,14 @@
                (window-height . fit-window-to-buffer)))
 
   (setq org-roam-dailies-directory "daily/")
+
+  (setq org-capture-templates
+        `(("t" "Task" entry (file "~/Documents/org/tasks.org")
+           "* TODO %?\n" :empty-lines 1)))
+
+(defun org-capture-task ()
+  (interactive)
+  (org-capture nil "t"))
 
 (straight-use-package
  '(org-transclusion
@@ -582,6 +633,7 @@
   "A hash table which keeps track of push times for all notes which anki push was called on. Is used in the function anki/my/push/notes in order to determine whether a push is necessary.")
 
 (defun anki/my/push-notes ()
+  "Checks whether the last time the file's notes were pushed is before its last edit. In this case, it pushes the file. The file's push time is updated in the hash table, and the note is saved. Useful mainly for automating pushing a large amount of files, since pushing 100+ files with up to 10 notes each can get slow."
   (interactive)
   (let* ((current-filename (file-name-nondirectory buffer-file-name))
 	 (push-time (gethash current-filename anki-push-times-hash-table))
@@ -591,6 +643,7 @@
 	   (anki-editor-push-notes)
 	   (message "No need to push."))
 	 (puthash current-filename (current-time) anki-push-times-hash-table)
+	 (save-buffer)
 	))
 
 (add-to-list 'closing-variables 'anki-push-times-hash-table) ; Saves the update table on save and loads it on startup.
