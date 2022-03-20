@@ -10,8 +10,4 @@
 :ANKI_TAGS: ${2:default}
 :END:
 
-** Front
-$1
-
-** Back
 $0

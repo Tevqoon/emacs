@@ -86,7 +86,7 @@ Currently using Emacs-Plus 28 from [[https://github.com/d12frosted/homebrew-emac
 
   (defun efs/org-mode-visual-fill ()
     "Sets the width just so that there's a little bit
-     of space on the left."
+     of space on the left and right."
     (setq visual-fill-column-width 110
           visual-fill-column-center-text t))
 
@@ -162,12 +162,13 @@ This disables the built-in package manager from loading.
             ;('dark (load-theme 'modus-vivendi t))
             ))
 
-  (if (eq window-system 'ns)
-      (progn
-        (setq ns-alternate-modifier 'meta)
-        (setq ns-right-alternate-modifier 'none)
-        (setq ns-right-command-modifier 'hyper)
-        (add-hook 'ns-system-appearance-change-functions #'my/apply-theme)
+(if (eq window-system 'ns)
+    (progn
+      (setq ns-alternate-modifier 'meta)
+      (setq ns-right-alternate-modifier 'none)
+      (setq ns-right-command-modifier 'hyper)
+      (add-hook 'ns-system-appearance-change-functions #'my/apply-theme)
+      (setq org-roam-directory "~/Documents/org")
         ))
 #+end_src
 
@@ -493,7 +494,6 @@ Functions to dump variables to a file. Includes a simple utility to make a varia
 #+end_src
 
 ** Pdf-mode
-
 A better pdf reader for emacs, here specifically for use with org-noter
 
 #+begin_src emacs-lisp
@@ -527,7 +527,8 @@ A better pdf reader for emacs, here specifically for use with org-noter
   (winum-mode)
 #+end_src
 
-
+** Email
+*** mu4e
 
 * Org mode
 ** General setup
@@ -552,6 +553,7 @@ A better pdf reader for emacs, here specifically for use with org-noter
 
 
 (setq org-image-actual-width nil)
+(setq org-startup-with-inline-images t)
 
 #+end_src
 
@@ -625,7 +627,7 @@ Beefy boy.
 #+begin_src emacs-lisp
 
   (setq org-todo-keywords
-        '((sequence "TODO(t)" "NEXT(n)" "REFILE(r)" "EXPLORE(e)" "HOLD(h)" "WAITING(w)" "|" "DONE(d!)" "CANCELLED(c!)")))
+        '((sequence "TODO(t)" "NEXT(n)" "REFILE(r)" "FINISH(f)" "EXPLORE(e)" "HOLD(h)" "WAITING(w)" "|" "DONE(d!)" "CANCELLED(c!)")))
 
   ;; So it doesn't ruin window configs
   (setq org-agenda-window-setup 'current-window) 
@@ -679,15 +681,16 @@ PRIORITY may be one of the characters ?A, ?B, or ?C."
                     (org-agenda-overriding-header "High-priority unfinished tasks:")))
 	     (todo "NEXT" ((org-agenda-skip-function '(or (air-org-skip-subtree-if-priority ?A)))
 			   (org-agenda-overriding-header "Up next: ")))
-	     (agenda "" nil)
+	     (agenda "" ((org-agenda-span 'week)))
 	     (todo "REFILE" ((org-agenda-overriding-header "Things to refile: ")))
+	     (todo "FINISH" ((org-agenda-overriding-header "Things to finish up: ")))
              (alltodo ""
                       ((org-agenda-skip-function '(or (air-org-skip-subtree-if-habit)
                                                       (air-org-skip-subtree-if-priority ?A)
                                                       (org-agenda-skip-if nil '(scheduled deadline))
-						      (org-agenda-skip-entry-if 'todo '("NEXT" "REFILE"))))
-                       (org-agenda-overriding-header "All normal priority tasks:"))))
-            ))))
+						      (org-agenda-skip-entry-if 'todo '("NEXT" "REFILE" "FINISH"))))
+                       (org-agenda-overriding-header "All normal priority tasks:")))
+	     )))))
 
 (defun open-org-agenda ()
   (interactive)
@@ -799,7 +802,6 @@ if it lacks a name, or use the hyperlink itself in that case.
   :init
   (setq org-roam-v2-ack t)
   :custom
-  (org-roam-directory "~/Documents/org")
   (org-roam-completion-everywhere t)
   :bind (("C-c n b " . org-roam-buffer-toggle)
          ("C-c n f" . org-roam-node-find)
@@ -821,12 +823,10 @@ if it lacks a name, or use the hyperlink itself in that case.
     :config
     (org-roam-setup))
 
-  (advice-add 'org-roam-refile :after 'org-save-all-org-buffers)
-
-  (setq org-roam-mode-section-functions
+  (advice-add 'org-roam-refile :after 'org-save-all-org-buffer  (setq org-roam-mode-section-functions
       (list #'org-roam-backlinks-section
             #'org-roam-reflinks-section
-            #'org-roam-unlinked-references-section))
+            #'org-roam-unlinked-references-section)))
 
   (add-to-list 'display-buffer-alist
              '("\\*org-roam\\*"
@@ -835,7 +835,7 @@ if it lacks a name, or use the hyperlink itself in that case.
                (window-width . 0.33)
                (window-height . fit-window-to-buffer)))
 
-  (setq org-roam-dailies-directory "daily/")
+(setq org-roam-dailies-directory "daily/")
 
 
 #+end_src
@@ -864,8 +864,11 @@ Fuck it, I'm making my own damn Xanadu.
   :host github
   :repo "nobiot/org-transclusion"))
 
-(define-key global-map (kbd "C-c n t t") #'org-transclusion-add)
+(define-key global-map (kbd "C-c n t a") #'org-transclusion-add)
 (define-key global-map (kbd "C-c n t n") #'org-transclusion-mode)
+
+(add-hook 'org-mode-hook (lambda () (org-transclusion-mode 1)))
+(add-hook 'org-transclusion-mode-hook #'xenops-dwim)
 
 
 #+end_src
@@ -887,6 +890,16 @@ A package which allows one to view their nodes as a graph, using a web interface
       (setq org_roam-ui-follow nil)
       (setq org-roam-ui-update-on-save t)
       (setq org-roam-ui-open-on-start nil))
+
+#+end_src
+
+** Org-noter
+#+begin_src emacs-lisp
+
+(use-package org-noter)
+
+(setq org-noter-default-notes-file-names '("notes.org"))
+(setq org-noter-notes-search-path (list (concat org-roam-directory "/notes")))
 
 #+end_src
 ** citations
@@ -958,7 +971,13 @@ A library for org-mode stuff.
 Allows editing of anki flashcards directly in org files using tags.
 #+begin_src emacs-lisp
 
-  (use-package anki-editor)
+(straight-use-package
+ '(anki-editor
+   :type git
+   :host github
+   :repo "Tevqoon/anki-editor"))
+
+(setq anki-editor-latex-style 'mathjax)
 
 (add-hook 'org-mode-hook (lambda () (anki-editor-mode 1)))
   
@@ -979,7 +998,7 @@ I only want to push if the file has changed on disk since last push. Hence we ne
 	 (push-time (gethash current-filename anki-push-times-hash-table))
 	 (edit-time (file-attribute-modification-time (file-attributes current-filename))))
 	 (if (or (not push-time)
-		   (time-less-p push-time edit-time))
+		 (time-less-p push-time edit-time))
 	   (anki-editor-push-notes)
 	   (message "No need to push."))
 	 (puthash current-filename (current-time) anki-push-times-hash-table)
@@ -1155,7 +1174,7 @@ This one calls =org-update-tag= for all the pairs. This we can hook.
 
 #+end_src
 
-*** Anki connect
+*** Anki-editor
 
 #+begin_src emacs-lisp
 
@@ -1199,7 +1218,9 @@ We advise the actual =org-agenda= function to update the agenda files to the fil
     (defun anki/push-all ()
       "Maps over the files with the flashcards tag and pushes them."
       (interactive)
-      (mapc #'anki/push-filename (anki/flashcards-files)))
+      (mapc #'anki/push-filename (anki/flashcards-files))
+      ; (dump-closing-variables) ; should have this on a timer or something instead
+      )
 
 #+end_src
 
@@ -1337,8 +1358,8 @@ I need commutative diagrams in org mode and anki, hence i want to keep a tex fol
 (defun get-current-standalones-latex (match-p)
   (completing-read
 		 "Enter standalone name: "
-		 (mapcar (lambda (x) (s-chop-suffix ".tex" x))
-			 (-filter (lambda (x) (s-suffix? ".tex" x))
+		 (mapcar (lambda (x) (s-chop-suffix ".png" x))
+			 (-filter (lambda (x) (s-suffix? ".png" x))
 				  (directory-files (concat org-roam-directory "/tex"))))
 		 nil
 		 match-p))

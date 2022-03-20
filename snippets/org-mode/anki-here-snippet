@@ -8,9 +8,4 @@
 :ANKI_DECK: Default
 :ANKI_TAGS: ${1:default}
 :END:
-
-** Front
-$2
-
-** Back
 $0

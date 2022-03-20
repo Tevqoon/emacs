@@ -11,7 +11,7 @@
    '((eval add-hook 'after-save-hook #'compile-current-standalone-latex nil t)
      (TeX-command-extra-options . " --shell-escape ")))
  '(warning-suppress-log-types '((comp)))
- '(warning-suppress-types '((emacs))))
+ '(warning-suppress-types '((websocket) (websocket) (emacs))))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.

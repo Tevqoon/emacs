@@ -61,7 +61,7 @@
 
   (defun efs/org-mode-visual-fill ()
     "Sets the width just so that there's a little bit
-     of space on the left."
+     of space on the left and right."
     (setq visual-fill-column-width 110
           visual-fill-column-center-text t))
 
@@ -110,12 +110,13 @@
             ;('dark (load-theme 'modus-vivendi t))
             ))
 
-  (if (eq window-system 'ns)
-      (progn
-        (setq ns-alternate-modifier 'meta)
-        (setq ns-right-alternate-modifier 'none)
-        (setq ns-right-command-modifier 'hyper)
-        (add-hook 'ns-system-appearance-change-functions #'my/apply-theme)
+(if (eq window-system 'ns)
+    (progn
+      (setq ns-alternate-modifier 'meta)
+      (setq ns-right-alternate-modifier 'none)
+      (setq ns-right-command-modifier 'hyper)
+      (add-hook 'ns-system-appearance-change-functions #'my/apply-theme)
+      (setq org-roam-directory "~/Documents/org")
         ))
 
   (use-package battery)
@@ -364,6 +365,7 @@
 
 
 (setq org-image-actual-width nil)
+(setq org-startup-with-inline-images t)
 
     ;; Line spacing
   (setq line-spacing 0.1)
@@ -417,7 +419,7 @@
   (add-hook 'org-mode-hook (lambda () (org-pretty-table-mode)))
 
   (setq org-todo-keywords
-        '((sequence "TODO(t)" "NEXT(n)" "REFILE(r)" "EXPLORE(e)" "HOLD(h)" "WAITING(w)" "|" "DONE(d!)" "CANCELLED(c!)")))
+        '((sequence "TODO(t)" "NEXT(n)" "REFILE(r)" "FINISH(f)" "EXPLORE(e)" "HOLD(h)" "WAITING(w)" "|" "DONE(d!)" "CANCELLED(c!)")))
 
   ;; So it doesn't ruin window configs
   (setq org-agenda-window-setup 'current-window) 
@@ -471,15 +473,16 @@ PRIORITY may be one of the characters ?A, ?B, or ?C."
                     (org-agenda-overriding-header "High-priority unfinished tasks:")))
 	     (todo "NEXT" ((org-agenda-skip-function '(or (air-org-skip-subtree-if-priority ?A)))
 			   (org-agenda-overriding-header "Up next: ")))
-	     (agenda "" nil)
+	     (agenda "" ((org-agenda-span 'week)))
 	     (todo "REFILE" ((org-agenda-overriding-header "Things to refile: ")))
+	     (todo "FINISH" ((org-agenda-overriding-header "Things to finish up: ")))
              (alltodo ""
                       ((org-agenda-skip-function '(or (air-org-skip-subtree-if-habit)
                                                       (air-org-skip-subtree-if-priority ?A)
                                                       (org-agenda-skip-if nil '(scheduled deadline))
-						      (org-agenda-skip-entry-if 'todo '("NEXT" "REFILE"))))
-                       (org-agenda-overriding-header "All normal priority tasks:"))))
-            ))))
+						      (org-agenda-skip-entry-if 'todo '("NEXT" "REFILE" "FINISH"))))
+                       (org-agenda-overriding-header "All normal priority tasks:")))
+	     )))))
 
 (defun open-org-agenda ()
   (interactive)
@@ -547,7 +550,6 @@ PRIORITY may be one of the characters ?A, ?B, or ?C."
   :init
   (setq org-roam-v2-ack t)
   :custom
-  (org-roam-directory "~/Documents/org")
   (org-roam-completion-everywhere t)
   :bind (("C-c n b " . org-roam-buffer-toggle)
          ("C-c n f" . org-roam-node-find)
@@ -569,12 +571,10 @@ PRIORITY may be one of the characters ?A, ?B, or ?C."
     :config
     (org-roam-setup))
 
-  (advice-add 'org-roam-refile :after 'org-save-all-org-buffers)
-
-  (setq org-roam-mode-section-functions
+  (advice-add 'org-roam-refile :after 'org-save-all-org-buffer  (setq org-roam-mode-section-functions
       (list #'org-roam-backlinks-section
             #'org-roam-reflinks-section
-            #'org-roam-unlinked-references-section))
+            #'org-roam-unlinked-references-section)))
 
   (add-to-list 'display-buffer-alist
              '("\\*org-roam\\*"
@@ -583,7 +583,7 @@ PRIORITY may be one of the characters ?A, ?B, or ?C."
                (window-width . 0.33)
                (window-height . fit-window-to-buffer)))
 
-  (setq org-roam-dailies-directory "daily/")
+(setq org-roam-dailies-directory "daily/")
 
   (setq org-capture-templates
         `(("t" "Task" entry (file "~/Documents/org/tasks.org")
@@ -599,8 +599,11 @@ PRIORITY may be one of the characters ?A, ?B, or ?C."
   :host github
   :repo "nobiot/org-transclusion"))
 
-(define-key global-map (kbd "C-c n t t") #'org-transclusion-add)
+(define-key global-map (kbd "C-c n t a") #'org-transclusion-add)
 (define-key global-map (kbd "C-c n t n") #'org-transclusion-mode)
+
+(add-hook 'org-mode-hook (lambda () (org-transclusion-mode 1)))
+(add-hook 'org-transclusion-mode-hook #'xenops-dwim)
 
   (use-package org-roam-ui
     :straight
@@ -616,6 +619,11 @@ PRIORITY may be one of the characters ?A, ?B, or ?C."
       (setq org-roam-ui-update-on-save t)
       (setq org-roam-ui-open-on-start nil))
 
+(use-package org-noter)
+
+(setq org-noter-default-notes-file-names '("notes.org"))
+(setq org-noter-notes-search-path (list (concat org-roam-directory "/notes")))
+
     (setq org-roam-capture-templates
       '(("d" "default" plain
          "%?"
@@ -625,7 +633,13 @@ PRIORITY may be one of the characters ?A, ?B, or ?C."
 
   (use-package vulpea)
 
-  (use-package anki-editor)
+(straight-use-package
+ '(anki-editor
+   :type git
+   :host github
+   :repo "Tevqoon/anki-editor"))
+
+(setq anki-editor-latex-style 'mathjax)
 
 (add-hook 'org-mode-hook (lambda () (anki-editor-mode 1)))
 
@@ -639,7 +653,7 @@ PRIORITY may be one of the characters ?A, ?B, or ?C."
 	 (push-time (gethash current-filename anki-push-times-hash-table))
 	 (edit-time (file-attribute-modification-time (file-attributes current-filename))))
 	 (if (or (not push-time)
-		   (time-less-p push-time edit-time))
+		 (time-less-p push-time edit-time))
 	   (anki-editor-push-notes)
 	   (message "No need to push."))
 	 (puthash current-filename (current-time) anki-push-times-hash-table)
@@ -779,7 +793,9 @@ PRIORITY may be one of the characters ?A, ?B, or ?C."
     (defun anki/push-all ()
       "Maps over the files with the flashcards tag and pushes them."
       (interactive)
-      (mapc #'anki/push-filename (anki/flashcards-files)))
+      (mapc #'anki/push-filename (anki/flashcards-files))
+      ; (dump-closing-variables) ; should have this on a timer or something instead
+      )
 
   (use-package python-mode
     :custom
@@ -847,8 +863,8 @@ PRIORITY may be one of the characters ?A, ?B, or ?C."
 (defun get-current-standalones-latex (match-p)
   (completing-read
 		 "Enter standalone name: "
-		 (mapcar (lambda (x) (s-chop-suffix ".tex" x))
-			 (-filter (lambda (x) (s-suffix? ".tex" x))
+		 (mapcar (lambda (x) (s-chop-suffix ".png" x))
+			 (-filter (lambda (x) (s-suffix? ".png" x))
 				  (directory-files (concat org-roam-directory "/tex"))))
 		 nil
 		 match-p))
