@@ -424,7 +424,7 @@ Functions to dump variables to a file. Includes a simple utility to make a varia
   (interactive)
   (dump-vars-to-file closing-variables closing-variables-filename))
 
-(add-hook 'kill-emacs-hook (lambda () (dump-closing-variables))) ; Write on exit
+(add-hook 'kill-emacs-hook #'dump-closing-variables) ; Write on exit
 
 #+end_src
 
@@ -627,7 +627,7 @@ Beefy boy.
 #+begin_src emacs-lisp
 
   (setq org-todo-keywords
-        '((sequence "TODO(t)" "NEXT(n)" "REFILE(r)" "FINISH(f)" "EXPLORE(e)" "HOLD(h)" "WAITING(w)" "|" "DONE(d!)" "CANCELLED(c!)")))
+        '((sequence "TODO(t)" "NEXT(n)" "ACTIVE(a)" "REFILE(r)" "FINISH(f)" "EXPLORE(e)" "HOLD(h)" "WAITING(w)" "|" "DONE(d!)" "CANCELLED(c!)")))
 
   ;; So it doesn't ruin window configs
   (setq org-agenda-window-setup 'current-window) 
@@ -644,7 +644,7 @@ Beefy boy.
   (setq org-log-done 'time)
   (setq org-log-into-drawer t)
 (setq org-agenda-start-on-weekday nil)
-(setq org-reverse-note-order t)
+(setq org-reverse-note-order nil)
  '(org-fast-tag-selection-single-key (quote expert))
 
 
@@ -723,10 +723,14 @@ PRIORITY may be one of the characters ?A, ?B, or ?C."
   
     (require 'org-tempo)
 
-    (add-to-list 'org-structure-template-alist '("sh" . "src shell"))
-    (add-to-list 'org-structure-template-alist '("el" . "src emacs-lisp"))
-    (add-to-list 'org-structure-template-alist '("py" . "src python :results output"))
-    (add-to-list 'org-structure-template-alist '("cs" . "src C"))
+(add-to-list 'org-structure-template-alist '("sh" . "src shell"))
+(add-to-list 'org-structure-template-alist '("el" . "src emacs-lisp"))
+(add-to-list 'org-structure-template-alist '("py" . "src python :results output"))
+(add-to-list 'org-structure-template-alist '("cs" . "src C"))
+(add-to-list 'org-structure-template-alist '("def" . "definicija"))
+(add-to-list 'org-structure-template-alist '("izr" . "izrek"))
+(add-to-list 'org-structure-template-alist '("prf" . "proof"))
+(add-to-list 'org-structure-template-alist '("trd" . "trditev"))
 
 #+end_src
 
@@ -814,6 +818,7 @@ if it lacks a name, or use the hyperlink itself in that case.
          ("C-c n n t" . org-roam-extract-subtree)
          ("C-c n n a" . org-roam-alias-add)
 	 ("C-c n c" . org-capture-task)
+	 ("C-c n n n" . org-noter)
          :map org-mode-map
          ("C-M-i"    . completion-at-point)
          ("C-c C-x C-l" . nil); Built in LaTeX previews are an annoyance with xenops.
@@ -823,10 +828,12 @@ if it lacks a name, or use the hyperlink itself in that case.
     :config
     (org-roam-setup))
 
-  (advice-add 'org-roam-refile :after 'org-save-all-org-buffer  (setq org-roam-mode-section-functions
+(advice-add 'org-roam-refile :after 'org-save-all-org-buffers)
+
+(setq org-roam-mode-section-functions
       (list #'org-roam-backlinks-section
             #'org-roam-reflinks-section
-            #'org-roam-unlinked-references-section)))
+            #'org-roam-unlinked-references-section))
 
   (add-to-list 'display-buffer-alist
              '("\\*org-roam\\*"
@@ -866,10 +873,6 @@ Fuck it, I'm making my own damn Xanadu.
 
 (define-key global-map (kbd "C-c n t a") #'org-transclusion-add)
 (define-key global-map (kbd "C-c n t n") #'org-transclusion-mode)
-
-(add-hook 'org-mode-hook (lambda () (org-transclusion-mode 1)))
-(add-hook 'org-transclusion-mode-hook #'xenops-dwim)
-
 
 #+end_src
 
@@ -992,15 +995,18 @@ I only want to push if the file has changed on disk since last push. Hence we ne
   "A hash table which keeps track of push times for all notes which anki push was called on. Is used in the function anki/my/push/notes in order to determine whether a push is necessary.")
 
 (defun anki/my/push-notes ()
-  "Checks whether the last time the file's notes were pushed is before its last edit. In this case, it pushes the file. The file's push time is updated in the hash table, and the note is saved. Useful mainly for automating pushing a large amount of files, since pushing 100+ files with up to 10 notes each can get slow."
+  "Checks whether the last time the file's notes were pushed is before its last edit. In this case, it pushes the file. The file's push time is updated in the hash table, and the note is saved. Useful mainly for automating pushing a large amount of files, since pushing 100+ files with up to 10 notes each can get slow. If called with C-u, pushes regardless."
   (interactive)
   (let* ((current-filename (file-name-nondirectory buffer-file-name))
 	 (push-time (gethash current-filename anki-push-times-hash-table))
 	 (edit-time (file-attribute-modification-time (file-attributes current-filename))))
-	 (if (or (not push-time)
-		 (time-less-p push-time edit-time))
-	   (anki-editor-push-notes)
-	   (message "No need to push."))
+    (if (and push-time ; There is a push time
+	     (time-less-p edit-time push-time) ; And the file was last pushed after it was edited
+	     (not current-prefix-arg) ; And the function was not called with C-u
+	     )
+	   (message "No need to push.") ; THen there is no need to push.
+	   (anki-editor-push-notes) ; Otherwise push.
+	   )
 	 (puthash current-filename (current-time) anki-push-times-hash-table)
 	 (save-buffer)
 	))
@@ -1209,17 +1215,32 @@ We advise the actual =org-agenda= function to update the agenda files to the fil
 
 *** Anki stuff
 #+begin_src emacs-lisp
-    (defun anki/push-filename (filename)
-      "Opens the file with filename as a temporary buffer and pushes its notes."
-      (save-excursion
-        (with-current-buffer (find-file-noselect filename)
-          (progn (anki/my/push-notes)))))
+    (defun anki/push-filename (filename push-anyway-p)
+      "Opens the file with filename as a temporary buffer and pushes its notes. It checks whether a file needs to be pushed first, to avoid opening all of the files as buffers. As such it calls the original pushing function, since it'd be redundant to check whether it needs to be pushed twice."
+      (let* ((current-filename (file-name-nondirectory filename))
+	     (push-time (gethash current-filename anki-push-times-hash-table))
+	     (edit-time (file-attribute-modification-time (file-attributes filename))))
+	(unless (and push-time ; There is a push time
+		 (time-less-p edit-time push-time) ; And the file was last pushed after it was edited
+		 (not push-anyway-p) ; And we're forcing a push
+		 )
+	    (save-excursion
+              (with-current-buffer (find-file-noselect filename)
+		(progn (anki-editor-push-notes)
+		       (save-buffer)
+		 ))))
+	  (puthash current-filename (current-time) anki-push-times-hash-table)))
 
     (defun anki/push-all ()
-      "Maps over the files with the flashcards tag and pushes them."
+      "Maps over the files with the flashcards tag and pushes them. If called with C-u, it will pass it through and force the pushing of all of the files. Useful for updates in the pushing engine and the like. "
       (interactive)
-      (mapc #'anki/push-filename (anki/flashcards-files))
+      (if current-prefix-arg
+	        (mapc (lambda (f) (anki/push-filename f t))   (anki/flashcards-files))
+	        (mapc (lambda (f) (anki/push-filename f nil)) (anki/flashcards-files))
+	  )
+      
       ; (dump-closing-variables) ; should have this on a timer or something instead
+      (message "Done pushing.")
       )
 
 #+end_src
@@ -1319,6 +1340,9 @@ Firstly, we must set a header for our org files to use.
 #+end_src
 
 A custom renderer that uses pdf as an intermediary format and converts it to the vector format =svg= to allow for good =tikz-cd= rendering. Need to find a good way to convert the pdf to svg tho.
+
+*** TODO Custom compiling and rendering
+I want to switch to using =XeTeX= with DVI for native unicode support. Hopefully it will end up working well out of the box. If it could also automatically render commutative diagrams, that'd be a big plus.
 
 #+begin_src emacs-lisp :tangle no
 

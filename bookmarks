@@ -2,7 +2,12 @@
 ;;; This format is meant to be slightly human-readable;
 ;;; nevertheless, you probably don't want to edit it.
 ;;; -*- End Of Bookmark File Format Version Stamp -*-
-(("iBooks"
+(("js.sty"
+ (filename . "~/.emacs.d/defaults/js.sty")
+ (front-context-string . "\\DeclareMathOper")
+ (rear-context-string . "tor{\\divv}{div}\n")
+ (position . 1417))
+("iBooks"
  (filename . "~/Library/Mobile Documents/iCloud~com~apple~iBooks/Documents/")
  (front-context-string . "Mickey Petersen ")
  (rear-context-string . "3 Nov  7 02:26  ")
@@ -13,10 +18,10 @@
  (rear-context-string . "680B][@Tasks]]\n\n")
  (position . 403))
 ("org-capture-last-stored"
- (filename . "~/Documents/org/20220318083015-projektivni_prostor.org")
+ (filename . "~/Documents/org/20220324205624-kvocient_kolobarja.org")
  (front-context-string)
- (rear-context-string . "ektivni prostor\n")
- (position . 97))
+ (rear-context-string . "cient kolobarja\n")
+ (position . 96))
 ("org-refile-last-stored"
  (filename . "~/Documents/org/20211117164414-inbox.org")
  (front-context-string . "** TODO Add bett")

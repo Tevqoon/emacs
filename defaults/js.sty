@@ -44,6 +44,7 @@
 \providecommand{\C}{\mathbb{C}}
 \providecommand{\F}{\mathbb{F}}
 \providecommand{\bH}{\mathbb{H}}
+\providecommand{\HH}{\mathbb{H}}
 
 \DeclareMathOperator{\id}{id}
 \DeclareMathOperator{\Sim}{Sim}
@@ -86,7 +87,6 @@
 \providecommand{\vecc}[2]{\begin{bmatrix} #1 \\ #2 \end{bmatrix}}
 
 % Quiver commands
-
 % A TikZ style for curved arrows of a fixed height, due to AndréC.
 \tikzset{curve/.style={settings={#1},to path={(\tikztostart)
     .. controls ($(\tikztostart)!\pv{pos}!(\tikztotarget)!\pv{height}!270:(\tikztotarget)$)
@@ -109,5 +109,16 @@
 \let\epsilon\varepsilon
 
 % Theorem environs etc
-\newtheorem{theorem}{Theorem}[section]
+\newenvironment{rešitev}{\begin{proof}[Rešitev]}{\end{proof}}
+\theoremstyle{definition}
 \newtheorem{izrek}{Izrek}[section]
+\newtheorem{lema}[izrek]{Lema}%[section]
+\newtheorem*{lema*}{Lema}%[section]
+\newtheorem{opomba}{Opomba}[izrek]
+\newtheorem{posledica}[opomba]{Posledica}
+\newtheorem{trditev}[izrek]{Trditev}
+\newtheorem*{trditev*}{Trditev}
+\newtheorem{definicija}[izrek]{Definicija}%[section]
+\newtheorem{zgled}{Zgled}[izrek]
+\newtheorem{primer}{Primer}[subsection]
+\newtheorem{naloga}{Naloga}[section]
