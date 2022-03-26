@@ -146,6 +146,7 @@
 (global-set-key (kbd "s-b") 'counsel-switch-buffer)
 
 (setq ivy-dynamic-exhibit-delay-ms 250)
+(setq ivy-re-builders-alist '((t . ivy--regex-ignore-order)))
 
     ;; Enable richer annotations using the Marginalia package
   (use-package marginalia
@@ -211,6 +212,16 @@
               (message "Deleted file %s." filename)
               (kill-buffer)))
       (message "Not a file visiting buffer!"))))
+
+(defun my/delete-current-file-no-ask-danger ()
+  (let ((filename (buffer-file-name)))
+    (if filename
+	(progn
+	  (delete-file filename)
+	  (message "Deleted file %s." filename)
+	  (kill-buffer))
+      (message "Not a file visiting buffer."))
+    ))
 
   (electric-pair-mode 1)
 
@@ -366,6 +377,7 @@
 
 (setq org-image-actual-width nil)
 (setq org-startup-with-inline-images t)
+(setq calendar-week-start-day 1)
 
     ;; Line spacing
   (setq line-spacing 0.1)
@@ -661,11 +673,12 @@ PRIORITY may be one of the characters ?A, ?B, or ?C."
 	     (not current-prefix-arg) ; And the function was not called with C-u
 	     )
 	   (message "No need to push.") ; THen there is no need to push.
+      
 	   (anki-editor-push-notes) ; Otherwise push.
-	   )
-	 (puthash current-filename (current-time) anki-push-times-hash-table)
-	 (save-buffer)
-	))
+	   (puthash current-filename (current-time) anki-push-times-hash-table) ; Update with new push time
+	   (save-buffer) ; Save the buffer so that new ids get saved
+	   (dump-closing-variables) ; Update the variables file 
+	   (message "Done pushing.")))) ; Message that we're done
 
 (add-to-list 'closing-variables 'anki-push-times-hash-table) ; Saves the update table on save and loads it on startup.
 
@@ -719,7 +732,7 @@ PRIORITY may be one of the characters ?A, ?B, or ?C."
 
     (setq prune/ignored-files
           '("20211117183951-tasks.org"
-            "20211117164414-inbox.org")) ; These should always have project tags.
+            "inbox.org")) ; These should always have project tags.
 
     (setq tag-checkers (list (cons "project"    'org/project-p)
                              (cons "flashcards" 'anki/flashcard-p)))
@@ -791,33 +804,30 @@ PRIORITY may be one of the characters ?A, ?B, or ?C."
 
   (advice-add 'org-agenda :before #'roam-agenda-files-update)
 
-    (defun anki/push-filename (filename push-anyway-p)
-      "Opens the file with filename as a temporary buffer and pushes its notes. It checks whether a file needs to be pushed first, to avoid opening all of the files as buffers. As such it calls the original pushing function, since it'd be redundant to check whether it needs to be pushed twice."
-      (let* ((current-filename (file-name-nondirectory filename))
-	     (push-time (gethash current-filename anki-push-times-hash-table))
-	     (edit-time (file-attribute-modification-time (file-attributes filename))))
-	(unless (and push-time ; There is a push time
+(defun anki/push-filename (filename push-anyway-p)
+  "Opens the file with filename as a temporary buffer and pushes its notes. It checks whether a file needs to be pushed first, to avoid opening all of the files as buffers. As such it calls the original pushing function, since it'd be redundant to check whether it needs to be pushed twice."
+  (let* ((current-filename (file-name-nondirectory filename))
+	 (push-time (gethash current-filename anki-push-times-hash-table))
+	 (edit-time (file-attribute-modification-time (file-attributes filename))))
+    (unless (and push-time ; There is a push time
 		 (time-less-p edit-time push-time) ; And the file was last pushed after it was edited
 		 (not push-anyway-p) ; And we're forcing a push
-		 )
-	    (save-excursion
-              (with-current-buffer (find-file-noselect filename)
-		(progn (anki-editor-push-notes)
-		       (save-buffer)
+		     )
+      (save-excursion
+        (with-current-buffer (find-file-noselect filename)
+	  (progn (anki-editor-push-notes)
+		 (save-buffer) ; So that ids etc get saved to file.
 		 ))))
-	  (puthash current-filename (current-time) anki-push-times-hash-table)))
+    (puthash current-filename (current-time) anki-push-times-hash-table)))
 
-    (defun anki/push-all ()
-      "Maps over the files with the flashcards tag and pushes them. If called with C-u, it will pass it through and force the pushing of all of the files. Useful for updates in the pushing engine and the like. "
-      (interactive)
-      (if current-prefix-arg
-	        (mapc (lambda (f) (anki/push-filename f t))   (anki/flashcards-files))
-	        (mapc (lambda (f) (anki/push-filename f nil)) (anki/flashcards-files))
-	  )
-      
-      ; (dump-closing-variables) ; should have this on a timer or something instead
-      (message "Done pushing.")
-      )
+(defun anki/push-all ()
+  "Maps over the files with the flashcards tag and pushes them. If called with C-u, it will pass it through and force the pushing of all of the files. Useful for updates in the pushing engine and the like. "
+  (interactive)
+  (mapc (lambda (f) (anki/push-filename f current-prefix-arg)) (anki/flashcards-files))
+
+  (dump-closing-variables) ; should have this on a timer or something instead
+  (message "Done pushing.")
+  )
 
   (use-package python-mode
     :custom

@@ -8,7 +8,22 @@
  '(org-agenda-files
    '("~/Documents/org/20220214100718-realne_podmnogoterosti.org" "/Users/jure/Documents/org/20211201003254-financial.org" "/Users/jure/Documents/org/20211121211808-awodey_category_theory.org" "/Users/jure/Documents/org/20211117164414-inbox.org" "/Users/jure/Documents/org/20211116204149-meta_notetaking.org" "/Users/jure/Documents/org/20220213212024-paredit.org" "/Users/jure/Documents/org/daily/2022-02-14.org" "/Users/jure/Documents/org/20220211173847-tech.org" "/Users/jure/Documents/org/20211125224815-goals.org" "/Users/jure/Documents/org/20211117183951-tasks.org" "/Users/jure/Documents/org/20220215121721-kvocientni_prostori.org" "/Users/jure/Documents/org/20211125032426-emacs.org"))
  '(safe-local-variable-values
-   '((eval add-hook 'after-save-hook #'compile-current-standalone-latex nil t)
+   '((eval add-hook 'after-save-hook
+	   (lambda nil
+	     (unless
+		 (org-map-entries #'org-heading-components)
+	       (my/delete-current-file-no-ask-danger)))
+	   nil t)
+     (eval add-hook 'after-save-hook
+	   (lambda nil
+	     (let
+		 ((entries
+		   (org-map-entries #'org-element-at-point nil)))
+	       (unless entries
+		 (my/delete-current-file-no-ask-danger)))))
+     (org-archive-location . "archive.org::* %s")
+     (setq org-archive-location "archive.org::* %s")
+     (eval add-hook 'after-save-hook #'compile-current-standalone-latex nil t)
      (TeX-command-extra-options . " --shell-escape ")))
  '(warning-suppress-log-types '((comp)))
  '(warning-suppress-types '((websocket) (websocket) (emacs))))
