@@ -444,12 +444,15 @@
 
   (global-set-key (kbd "C-c a") 'org-agenda)
 
-  (setq org-agenda-start-with-log-mode t)
-  (setq org-log-done 'time)
-  (setq org-log-into-drawer t)
+(setq org-agenda-start-with-log-mode t)
+; (setq org-log-done 'time)
+(setq org-log-into-drawer t)
 (setq org-agenda-start-on-weekday nil)
 (setq org-reverse-note-order nil)
- '(org-fast-tag-selection-single-key (quote expert))
+(setq org-agenda-skip-scheduled-if-done t)
+(setq org-agenda-skip-deadline-if-done t)
+(setq org-agenda-skip-timestamp-if-done t)
+
 
 
 (defun air-org-skip-subtree-if-priority (priority)
@@ -500,18 +503,23 @@ PRIORITY may be one of the characters ?A, ?B, or ?C."
   (interactive)
   (org-agenda nil "d"))
 
-    (org-babel-do-load-languages
-     'org-babel-load-languages
-     '((emacs-lisp . t)
-       (python . t)
-       (C . t)
-       (latex . t)
-       ))
-
+(require 'ob-latex)
 (require 'ox-latex)
 
+(org-babel-do-load-languages
+ 'org-babel-load-languages
+ '((emacs-lisp . t)
+   (python . t)
+   (C . t)
+   (latex . t)
+   ))
+
+(setq org-latex-create-formula-image-program 'imagemagick)
+(setq org-format-latex-options (plist-put org-format-latex-options :scale 1.6))
+(setq org-latex-packages-alist '(("" "/Users/jure/.emacs.d/defaults/js" t)))
+
 (setq org-babel-python-command "python3")
-(setq org-latex-create-formula-image-program 'dvipng)
+;(setq org-latex-create-formula-image-program 'dvipng)
 
     (setq org-confirm-babel-evaluate nil
           org-src-fontify-natively t
@@ -581,10 +589,10 @@ PRIORITY may be one of the characters ?A, ?B, or ?C."
 	 ("C-c n n n" . org-noter)
          :map org-mode-map
          ("C-M-i"    . completion-at-point)
-         ("C-c C-x C-l" . nil); Built in LaTeX previews are an annoyance with xenops.
 	 ("C-c l" . org-store-link)
 	 ("C-c n l" . insert-standalone-latex)
-	 ("C-c n n l" . open-standalone-latex))
+	 ("C-c n n l" . open-standalone-latex)
+	 )
     :config
     (org-roam-setup))
 
@@ -731,7 +739,7 @@ PRIORITY may be one of the characters ?A, ?B, or ?C."
     (member "ANKI_NOTE_TYPE" (org-buffer-property-keys)))
 
     (setq prune/ignored-files
-          '("20211117183951-tasks.org"
+          '("tasks.org"
             "inbox.org")) ; These should always have project tags.
 
     (setq tag-checkers (list (cons "project"    'org/project-p)
@@ -811,21 +819,23 @@ PRIORITY may be one of the characters ?A, ?B, or ?C."
 	 (edit-time (file-attribute-modification-time (file-attributes filename))))
     (unless (and push-time ; There is a push time
 		 (time-less-p edit-time push-time) ; And the file was last pushed after it was edited
-		 (not push-anyway-p) ; And we're forcing a push
+		 (not push-anyway-p) ; And we're not forcing a push
 		     )
       (save-excursion
         (with-current-buffer (find-file-noselect filename)
 	  (progn (anki-editor-push-notes)
 		 (save-buffer) ; So that ids etc get saved to file.
+		 (puthash current-filename (current-time) anki-push-times-hash-table)
+		 (dump-closing-variables)
 		 ))))
-    (puthash current-filename (current-time) anki-push-times-hash-table)))
+))
 
 (defun anki/push-all ()
   "Maps over the files with the flashcards tag and pushes them. If called with C-u, it will pass it through and force the pushing of all of the files. Useful for updates in the pushing engine and the like. "
   (interactive)
   (mapc (lambda (f) (anki/push-filename f current-prefix-arg)) (anki/flashcards-files))
 
-  (dump-closing-variables) ; should have this on a timer or something instead
+  ;(dump-closing-variables) ; should have this on a timer or something instead
   (message "Done pushing.")
   )
 
@@ -834,7 +844,6 @@ PRIORITY may be one of the characters ?A, ?B, or ?C."
     ;; NOTE: Set these if Python 3 is called "python3" on your system!
     (python-shell-interpreter "python3"))
 
-  (setq org-latex-packages-alist '(("" "/Users/jure/.emacs.d/defaults/js" t)))
   ;;(setq org-latex-packages-alist nil)
 
     (use-package tex-mode
@@ -876,7 +885,7 @@ PRIORITY may be one of the characters ?A, ?B, or ?C."
   (add-hook 'org-mode-hook #'xenops-mode)
 
   ;; The org files used are relatively small, hence we can afford to auto-expand.
-  (add-hook 'org-mode-hook (lambda () (add-hook 'xenops-mode-hook #'xenops-dwim)))
+;;  (add-hook 'org-mode-hook (lambda () (add-hook 'xenops-mode-hook #'xenops-dwim)))
 
   (setq xenops-reveal-on-entry t)
   (setq xenops-math-image-scale-factor 1.8) ; Macs be high res.
@@ -892,14 +901,34 @@ PRIORITY may be one of the characters ?A, ?B, or ?C."
 ;(setq xenops-math-latex-process 'imagemagick)
 ;(setq xenops-math-latex-process 'dvipng)
 
+(defun get-current-files-standalones-latex (match-p current-prefix)
+  "Chooses from the diagrams prefixed with the current prefix"
+  (concat current-prefix "-" ; If going a layer deeper, show the already given diagrams
+	  (completing-read
+	   "Enter prefixed name: "
+	   (mapcar (lambda (x) (s-chop-prefix (concat current-prefix "-") (s-chop-suffix ".png" x)))
+		   (-filter (lambda (x) (and (s-prefix? current-prefix x)
+					     (s-suffix? ".png" x)))
+			    (directory-files (concat org-roam-directory "/tex"))))
+	   nil
+	   match-p)))
+
 (defun get-current-standalones-latex (match-p)
-  (completing-read
-		 "Enter standalone name: "
-		 (mapcar (lambda (x) (s-chop-suffix ".png" x))
-			 (-filter (lambda (x) (s-suffix? ".png" x))
-				  (directory-files (concat org-roam-directory "/tex"))))
-		 nil
-		 match-p))
+  "Chooses from all the diagrams, first option limits to only current prefix"
+  (let* ((current-prefix-pre (s-match "^[0-9]+" (file-name-nondirectory buffer-file-truename)))
+	 (current-prefix (if current-prefix-pre (car current-prefix-pre) nil))
+	 (option (completing-read
+		  "Enter standalone name: "
+		  (append (if current-prefix '("Current file prefix") nil)
+			  (mapcar (lambda (x) (s-chop-suffix ".png" x))
+				  (-filter (lambda (x) (s-suffix? ".png" x))
+					   (directory-files (concat org-roam-directory "/tex")))))
+		  nil
+		  match-p)))
+    (if (equal option "Current file prefix") ; Give the option to go on layer deeper
+	(get-current-files-standalones-latex match-p current-prefix)
+	option)
+))
 
 (defun compile-standalone-latex (fname)
   "Compiles the fname standalone latex fragment first into pdf, then converts it to png."

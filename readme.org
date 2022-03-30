@@ -392,6 +392,7 @@ Adds a modal mode above the usual stuffs. [[https://github.com/emacsorphanage/go
 (add-hook 'post-command-hook #'my-god-mode-update-cursor-type)
 
 #+end_src
+
 ** Libraries and stuff
 #+begin_src emacs-lisp
 
@@ -438,7 +439,6 @@ Functions to dump variables to a file. Includes a simple utility to make a varia
 (add-hook 'kill-emacs-hook #'dump-closing-variables) ; Write on exit
 
 #+end_src
-
 
 * General packages
 ** Rainbow delimiters
@@ -652,12 +652,15 @@ Beefy boy.
 
   (global-set-key (kbd "C-c a") 'org-agenda)
 
-  (setq org-agenda-start-with-log-mode t)
-  (setq org-log-done 'time)
-  (setq org-log-into-drawer t)
+(setq org-agenda-start-with-log-mode t)
+; (setq org-log-done 'time)
+(setq org-log-into-drawer t)
 (setq org-agenda-start-on-weekday nil)
 (setq org-reverse-note-order nil)
- '(org-fast-tag-selection-single-key (quote expert))
+(setq org-agenda-skip-scheduled-if-done t)
+(setq org-agenda-skip-deadline-if-done t)
+(setq org-agenda-skip-timestamp-if-done t)
+
 
 
 (defun air-org-skip-subtree-if-priority (priority)
@@ -714,19 +717,23 @@ PRIORITY may be one of the characters ?A, ?B, or ?C."
 
 *** Initialization
 #+begin_src emacs-lisp
-
-    (org-babel-do-load-languages
-     'org-babel-load-languages
-     '((emacs-lisp . t)
-       (python . t)
-       (C . t)
-       (latex . t)
-       ))
-
+(require 'ob-latex)
 (require 'ox-latex)
 
+(org-babel-do-load-languages
+ 'org-babel-load-languages
+ '((emacs-lisp . t)
+   (python . t)
+   (C . t)
+   (latex . t)
+   ))
+
+(setq org-latex-create-formula-image-program 'imagemagick)
+(setq org-format-latex-options (plist-put org-format-latex-options :scale 1.6))
+(setq org-latex-packages-alist '(("" "/Users/jure/.emacs.d/defaults/js" t)))
+
 (setq org-babel-python-command "python3")
-(setq org-latex-create-formula-image-program 'dvipng)
+;(setq org-latex-create-formula-image-program 'dvipng)
 
     (setq org-confirm-babel-evaluate nil
           org-src-fontify-natively t
@@ -833,10 +840,10 @@ if it lacks a name, or use the hyperlink itself in that case.
 	 ("C-c n n n" . org-noter)
          :map org-mode-map
          ("C-M-i"    . completion-at-point)
-         ("C-c C-x C-l" . nil); Built in LaTeX previews are an annoyance with xenops.
 	 ("C-c l" . org-store-link)
 	 ("C-c n l" . insert-standalone-latex)
-	 ("C-c n n l" . open-standalone-latex))
+	 ("C-c n n l" . open-standalone-latex)
+	 )
     :config
     (org-roam-setup))
 
@@ -1093,7 +1100,7 @@ Adapted from
 
 1. We parse the buffer using org-element-parse-buffer. It returns an abstract syntax tree of the current Org buffer. But sine we care only about headings, we ask it to return only them by passing a GRANULARITY parameter - 'headline. This makes things faster.
 2. Then we extract information about TODO keyword from headline AST, which contains a property we are interested in - :todo-type, which returns the type of TODO keyword according to org-todo-keywords - 'done, 'todo or nil (when keyword is not present).
-3. Now all we have to do is to check if the buffer list contains at least one keyword with 'todo type. We could use seq=find on the result of org-element-map, but it turns out that it provides an optional first-match argument that can be used for our needs. Thanks Gustav for pointing that out.
+3. Now all we have to do is to check if the buffer list contains at least one keyword with 'todo type. We could use seq-find on the result of org-element-map, but it turns out that it provides an optional first-match argument that can be used for our needs. Thanks Gustav for pointing that out.
 
 *** Flashcards
 
@@ -1110,7 +1117,7 @@ We also keep a list of checker functions and their respective tags.
 #+begin_src emacs-lisp
 
     (setq prune/ignored-files
-          '("20211117183951-tasks.org"
+          '("tasks.org"
             "inbox.org")) ; These should always have project tags.
 
     (setq tag-checkers (list (cons "project"    'org/project-p)
@@ -1215,7 +1222,7 @@ This one calls =org-update-tag= for all the pairs. This we can hook.
 ** ConSequences
 *** Project tag stuff
 
-We advise the actual =org-agenda= function to update the agenda files to the files every time we actually need agenda, such as not to need any weird times or manual updates.
+We advise the actual =org-agenda= function to update the agenda files to the files every time we actually need agenda, such as not to need any weird timers or manual updates.
 
 #+begin_src emacs-lisp
   
@@ -1236,21 +1243,23 @@ We advise the actual =org-agenda= function to update the agenda files to the fil
 	 (edit-time (file-attribute-modification-time (file-attributes filename))))
     (unless (and push-time ; There is a push time
 		 (time-less-p edit-time push-time) ; And the file was last pushed after it was edited
-		 (not push-anyway-p) ; And we're forcing a push
+		 (not push-anyway-p) ; And we're not forcing a push
 		     )
       (save-excursion
         (with-current-buffer (find-file-noselect filename)
 	  (progn (anki-editor-push-notes)
 		 (save-buffer) ; So that ids etc get saved to file.
+		 (puthash current-filename (current-time) anki-push-times-hash-table)
+		 (dump-closing-variables)
 		 ))))
-    (puthash current-filename (current-time) anki-push-times-hash-table)))
+))
 
 (defun anki/push-all ()
   "Maps over the files with the flashcards tag and pushes them. If called with C-u, it will pass it through and force the pushing of all of the files. Useful for updates in the pushing engine and the like. "
   (interactive)
   (mapc (lambda (f) (anki/push-filename f current-prefix-arg)) (anki/flashcards-files))
 
-  (dump-closing-variables) ; should have this on a timer or something instead
+  ;(dump-closing-variables) ; should have this on a timer or something instead
   (message "Done pushing.")
   )
 
@@ -1274,7 +1283,7 @@ Have to review all of the packages and make sure everything plays nice, and conf
 Firstly, we must set a header for our org files to use.
 #+begin_src emacs-lisp
 
-  (setq org-latex-packages-alist '(("" "/Users/jure/.emacs.d/defaults/js" t)))
+
   ;;(setq org-latex-packages-alist nil)
 
  #+end_src
@@ -1332,7 +1341,7 @@ Firstly, we must set a header for our org files to use.
   (add-hook 'org-mode-hook #'xenops-mode)
 
   ;; The org files used are relatively small, hence we can afford to auto-expand.
-  (add-hook 'org-mode-hook (lambda () (add-hook 'xenops-mode-hook #'xenops-dwim)))
+;;  (add-hook 'org-mode-hook (lambda () (add-hook 'xenops-mode-hook #'xenops-dwim)))
 
   (setq xenops-reveal-on-entry t)
   (setq xenops-math-image-scale-factor 1.8) ; Macs be high res.
@@ -1389,15 +1398,34 @@ I want to switch to using =XeTeX= with DVI for native unicode support. Hopefully
 I need commutative diagrams in org mode and anki, hence i want to keep a tex folder in my org-roam directory which contains various snippets. Should autocompile to png and get inserted by name as a link. If no file exists yet, makes one with a cool snippet.
 
 #+begin_src emacs-lisp
+(defun get-current-files-standalones-latex (match-p current-prefix)
+  "Chooses from the diagrams prefixed with the current prefix"
+  (concat current-prefix "-" ; If going a layer deeper, show the already given diagrams
+	  (completing-read
+	   "Enter prefixed name: "
+	   (mapcar (lambda (x) (s-chop-prefix (concat current-prefix "-") (s-chop-suffix ".png" x)))
+		   (-filter (lambda (x) (and (s-prefix? current-prefix x)
+					     (s-suffix? ".png" x)))
+			    (directory-files (concat org-roam-directory "/tex"))))
+	   nil
+	   match-p)))
 
 (defun get-current-standalones-latex (match-p)
-  (completing-read
-		 "Enter standalone name: "
-		 (mapcar (lambda (x) (s-chop-suffix ".png" x))
-			 (-filter (lambda (x) (s-suffix? ".png" x))
-				  (directory-files (concat org-roam-directory "/tex"))))
-		 nil
-		 match-p))
+  "Chooses from all the diagrams, first option limits to only current prefix"
+  (let* ((current-prefix-pre (s-match "^[0-9]+" (file-name-nondirectory buffer-file-truename)))
+	 (current-prefix (if current-prefix-pre (car current-prefix-pre) nil))
+	 (option (completing-read
+		  "Enter standalone name: "
+		  (append (if current-prefix '("Current file prefix") nil)
+			  (mapcar (lambda (x) (s-chop-suffix ".png" x))
+				  (-filter (lambda (x) (s-suffix? ".png" x))
+					   (directory-files (concat org-roam-directory "/tex")))))
+		  nil
+		  match-p)))
+    (if (equal option "Current file prefix") ; Give the option to go on layer deeper
+	(get-current-files-standalones-latex match-p current-prefix)
+	option)
+))
 
 (defun compile-standalone-latex (fname)
   "Compiles the fname standalone latex fragment first into pdf, then converts it to png."
