@@ -536,6 +536,7 @@ PRIORITY may be one of the characters ?A, ?B, or ?C."
 (add-to-list 'org-structure-template-alist '("izr" . "izrek"))
 (add-to-list 'org-structure-template-alist '("prf" . "proof"))
 (add-to-list 'org-structure-template-alist '("trd" . "trditev"))
+(add-to-list 'org-structure-template-alist '("lem" . "lema"))
 
   ;; Automatically tangle our Emacs.org config file when we save it
   (defun efs/org-babel-tangle-config ()
@@ -628,6 +629,8 @@ PRIORITY may be one of the characters ?A, ?B, or ?C."
 
 (define-key global-map (kbd "C-c n t a") #'org-transclusion-add)
 (define-key global-map (kbd "C-c n t n") #'org-transclusion-mode)
+
+(add-hook 'org-mode-hook (lambda () (add-hook 'org-transclusion-mode-hook #'xenops-dwim)))
 
   (use-package org-roam-ui
     :straight
@@ -826,7 +829,7 @@ PRIORITY may be one of the characters ?A, ?B, or ?C."
 	  (progn (anki-editor-push-notes)
 		 (save-buffer) ; So that ids etc get saved to file.
 		 (puthash current-filename (current-time) anki-push-times-hash-table)
-		 (dump-closing-variables)
+		 (dump-closing-variables); Fuck it, statistically speaking, there won't be many files getting pushed at a given time, and for big batches, it's still useful to be able to sort of recovery system
 		 ))))
 ))
 
