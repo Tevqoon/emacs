@@ -1,0 +1,11 @@
+# -*- mode: snippet -*-
+# name: Anki Thought
+# key: Ankit
+# --
+
+:PROPERTIES:
+:ANKI_NOTE_TYPE: Basic
+:ANKI_DECK: "Thought Patterns"
+:ANKI_TAGS: "thought-patterns"
+:END:
+$0

@@ -1,0 +1,13 @@
+# -*- mode: snippet -*-
+# name: Rešitev template
+# key: RešiteV
+# --
+
+**** Rešitev
+***** Understand the problem
+$0
+***** Plan
+
+***** Carry out the plan
+
+***** Look back

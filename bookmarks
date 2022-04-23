@@ -18,9 +18,9 @@
  (rear-context-string . "680B][@Tasks]]\n\n")
  (position . 403))
 ("org-capture-last-stored"
- (filename . "~/Documents/org/20220401090603-konstantna_preslikava.org")
+ (filename . "~/Documents/org/20220419144537-productivity_posting.org")
  (front-context-string)
- (rear-context-string . "ntna preslikava\n")
+ (rear-context-string . "ctivity posting\n")
  (position . 99))
 ("org-refile-last-stored"
  (filename . "~/Documents/org/20211117164414-inbox.org")
