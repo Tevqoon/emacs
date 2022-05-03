@@ -18,10 +18,10 @@
  (rear-context-string . "680B][@Tasks]]\n\n")
  (position . 403))
 ("org-capture-last-stored"
- (filename . "~/Documents/org/20220419144537-productivity_posting.org")
+ (filename . "~/Documents/org/20220503215813-dr_k_posting.org")
  (front-context-string)
- (rear-context-string . "ctivity posting\n")
- (position . 99))
+ (rear-context-string . ": Dr. K posting\n")
+ (position . 91))
 ("org-refile-last-stored"
  (filename . "~/Documents/org/20211117164414-inbox.org")
  (front-context-string . "** TODO Add bett")

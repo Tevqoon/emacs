@@ -426,12 +426,12 @@
 
   (use-package org-pretty-table
     :straight
-      (:host github :repo "Fuco1/org-pretty-table" :branch "master" :files ("*.el" "out")))
+     (:host github :repo "Fuco1/org-pretty-table" :branch "master" :files ("*.el" "out")))
 
   (add-hook 'org-mode-hook (lambda () (org-pretty-table-mode)))
 
   (setq org-todo-keywords
-        '((sequence "TODO(t)" "NEXT(n)" "ACTIVE(a)" "REFILE(r)" "FINISH(f)" "EXPLORE(e)" "HOLD(h)" "WAITING(w)" "|" "DONE(d!)" "CANCELLED(c!)")))
+        '((sequence "TODO(t)" "NEXT(n)" "ACTIVE(a)" "REFILE(r)" "PROCESS(p)" "FINISH(f)" "EXPLORE(e)" "HOLD(h)" "WAITING(w)" "|" "DONE(d!)" "CANCELLED(c!)")))
 
   ;; So it doesn't ruin window configs
   (setq org-agenda-window-setup 'current-window) 
@@ -491,14 +491,16 @@ PRIORITY may be one of the characters ?A, ?B, or ?C."
 	     (todo "NEXT" ((org-agenda-skip-function '(or (air-org-skip-subtree-if-priority ?A)))
 			   (org-agenda-overriding-header "Up next: ")))
 	     (agenda "" ((org-agenda-span 'week)))
+	     (todo "PROCESS" ((org-agenda-overriding-header "Articles and things to process: ")))
 	     (todo "REFILE" ((org-agenda-overriding-header "Things to refile: ")))
 	     (todo "FINISH" ((org-agenda-overriding-header "Things to finish up: ")))
              (alltodo ""
                       ((org-agenda-skip-function '(or (air-org-skip-subtree-if-habit)
                                                       (air-org-skip-subtree-if-priority ?A)
                                                       (org-agenda-skip-if nil '(scheduled deadline))
-						      (org-agenda-skip-entry-if 'todo '("NEXT" "ACTIVE" "REFILE" "FINISH"))))
+						      (org-agenda-skip-entry-if 'todo '("NEXT" "ACTIVE" "REFILE" "FINISH" "HOLD" "PROCESS"))))
                        (org-agenda-overriding-header "All normal priority tasks:")))
+	     (todo "HOLD" ((org-agenda-overriding-header "Currently on hold: ")))
 	     )))))
 
 (defun open-org-agenda ()
@@ -558,6 +560,7 @@ PRIORITY may be one of the characters ?A, ?B, or ?C."
 
 ;; Drag-and-drop to `dired`
 (add-hook 'dired-mode-hook 'org-download-enable)
+(setq-default org-download-image-dir (concat org-roam-directory "/media"))
 
 (straight-use-package
  '(org-remark
@@ -617,7 +620,7 @@ PRIORITY may be one of the characters ?A, ?B, or ?C."
 (setq org-roam-dailies-directory "daily/")
 
   (setq org-capture-templates
-        `(("t" "Task" entry (file "~/Documents/org/tasks.org")
+        `(("t" "Task" entry (file+headline "~/Documents/org/tasks.org" "General tasks")
            "* TODO %?\n" :empty-lines 1)))
 
 (defun org-capture-task ()
