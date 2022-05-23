@@ -5,10 +5,7 @@
 This file is the code. Using =org-babel-tangle= it gets converted to an =init.el= file upon every save,
 as is documented later.
 
-
-* Meta
 Currently using Emacs-Plus 28 from [[https://github.com/d12frosted/homebrew-emacs-plus][here]] compiled with =--with-native-comp=, =--with-imagemagick= and =--with-xwidgets=. Compile time was cca 30min on 2.9Ghz 2017 MBP. Looking forward to testing on M1 Pro.
-
 
 * General configs
 ** Initialization
@@ -440,7 +437,6 @@ Functions to dump variables to a file. Includes a simple utility to make a varia
 
 #+end_src
 
-
 * General packages
 ** Rainbow delimiters
 #+begin_src emacs-lisp
@@ -821,8 +817,6 @@ if it lacks a name, or use the hyperlink itself in that case.
 
 #+end_src
 
-
-
 * Org-roam
 ** Base
 #+begin_src emacs-lisp
@@ -1080,7 +1074,6 @@ I only want to push if the file has changed on disk since last push. Hence we ne
 
 #+end_src
 
-
 * Org Tag handler
 A generalized way to add and remove tags to org files easily.
 Used here to give =project= tags to files with todos for agenda usage
@@ -1140,6 +1133,8 @@ We also keep a list of checker functions and their respective tags.
 
   (mapc (lambda (p) (add-to-list 'org-tags-exclude-from-inheritance (car p)))
         tag-checkers)
+
+(add-to-list 'org-tags-exclude-from-inheritance "summary")
   
 #+end_src
 
@@ -1274,7 +1269,6 @@ We advise the actual =org-agenda= function to update the agenda files to the fil
 
 #+end_src
 
-
 * Languages
 ** Python
 #+begin_src emacs-lisp
@@ -1329,10 +1323,14 @@ Firstly, we must set a header for our org files to use.
       '(("al" "Insert aligned environment" "" cdlatex-environment ("aligned") nil t)
 	("bm" "Insert bmatrix environment" "" cdlatex-environment ("bmatrix") nil t)
 	("se" "Insert a nice subseteq" "\\subseteq" nil nil nil t)
-	("sse" "Insert a nice supseteql" "\\supseteq" nil nil nil t)
+	("sse" "Insert a nice supseteq" "\\supseteq" nil nil nil t)
 	("imp" "implies" "\\implies" nil nil nil t)
 	("imb" "Implied" "\\impliedby" nil nil nil t)
 	))
+
+(setq cdlatex-math-modify-alist
+      '(( ?A    "\\abs"          nil        t   nil nil )
+	(?o "\\mathring" nil t nil nil)))
 
 (add-hook 'LaTeX-mode-hook #'turn-on-org-cdlatex)
 (add-hook 'org-mode-hook   #'turn-on-org-cdlatex)
@@ -1341,7 +1339,7 @@ Firstly, we must set a header for our org files to use.
 #+end_src
 
 *** Xenops
-  I use xenops, for now only in org. Need to configure safe usage in "real" TeX files.
+I use xenops, for now only in org. Need to configure safe usage in "real" TeX files.
 #+begin_src emacs-lisp
   (use-package xenops)
 
@@ -1412,10 +1410,11 @@ I need commutative diagrams in org mode and anki, hence i want to keep a tex fol
   (concat current-prefix "-" ; If going a layer deeper, show the already given diagrams
 	  (completing-read
 	   "Enter prefixed name: "
-	   (mapcar (lambda (x) (s-chop-prefix (concat current-prefix "-") (s-chop-suffix ".png" x)))
-		   (-filter (lambda (x) (and (s-prefix? current-prefix x)
-					     (s-suffix? ".png" x)))
-			    (directory-files (concat org-roam-directory "/tex"))))
+	   (append (list (s-replace " " "-" (apply #'concat (org-get-outline-path t))))
+		   (mapcar (lambda (x) (s-chop-prefix (concat current-prefix "-") (s-chop-suffix ".png" x)))
+			   (-filter (lambda (x) (and (s-prefix? current-prefix x)
+						     (s-suffix? ".png" x)))
+				    (directory-files (concat org-roam-directory "/tex")))))
 	   nil
 	   match-p)))
 
@@ -1433,7 +1432,7 @@ I need commutative diagrams in org mode and anki, hence i want to keep a tex fol
 		  match-p)))
     (if (equal option "Current file prefix") ; Give the option to go on layer deeper
 	(get-current-files-standalones-latex match-p current-prefix)
-	option)
+      option)
 ))
 
 (defun compile-standalone-latex (fname)
@@ -1471,7 +1470,6 @@ If the file doesn't exist, visit a new .tex buffer and insert the right snippet.
 #+begin_src emacs-lisp
 (use-package racket-mode)
 #+end_src
-
 
 * Programming/editing stuff
 ** Auto-activating-snippets
@@ -1522,4 +1520,6 @@ Snippets, configuration stolen from [[https://gist.github.com/karthink/7d89df35e
   (global-set-key (kbd "s-<mouse-1>") 'mc/add-cursor-on-click)
 
 #+end_src
+
+
 

@@ -757,6 +757,8 @@ PRIORITY may be one of the characters ?A, ?B, or ?C."
   (mapc (lambda (p) (add-to-list 'org-tags-exclude-from-inheritance (car p)))
         tag-checkers)
 
+(add-to-list 'org-tags-exclude-from-inheritance "summary")
+
   (defun vulpea-buffer-p ()
     "Return non-nil if the currently visited buffer is a note."
     (and buffer-file-name
@@ -879,10 +881,14 @@ PRIORITY may be one of the characters ?A, ?B, or ?C."
       '(("al" "Insert aligned environment" "" cdlatex-environment ("aligned") nil t)
 	("bm" "Insert bmatrix environment" "" cdlatex-environment ("bmatrix") nil t)
 	("se" "Insert a nice subseteq" "\\subseteq" nil nil nil t)
-	("sse" "Insert a nice supseteql" "\\supseteq" nil nil nil t)
+	("sse" "Insert a nice supseteq" "\\supseteq" nil nil nil t)
 	("imp" "implies" "\\implies" nil nil nil t)
 	("imb" "Implied" "\\impliedby" nil nil nil t)
 	))
+
+(setq cdlatex-math-modify-alist
+      '(( ?A    "\\abs"          nil        t   nil nil )
+	(?o "\\mathring" nil t nil nil)))
 
 (add-hook 'LaTeX-mode-hook #'turn-on-org-cdlatex)
 (add-hook 'org-mode-hook   #'turn-on-org-cdlatex)
@@ -915,10 +921,11 @@ PRIORITY may be one of the characters ?A, ?B, or ?C."
   (concat current-prefix "-" ; If going a layer deeper, show the already given diagrams
 	  (completing-read
 	   "Enter prefixed name: "
-	   (mapcar (lambda (x) (s-chop-prefix (concat current-prefix "-") (s-chop-suffix ".png" x)))
-		   (-filter (lambda (x) (and (s-prefix? current-prefix x)
-					     (s-suffix? ".png" x)))
-			    (directory-files (concat org-roam-directory "/tex"))))
+	   (append (list (s-replace " " "-" (apply #'concat (org-get-outline-path t))))
+		   (mapcar (lambda (x) (s-chop-prefix (concat current-prefix "-") (s-chop-suffix ".png" x)))
+			   (-filter (lambda (x) (and (s-prefix? current-prefix x)
+						     (s-suffix? ".png" x)))
+				    (directory-files (concat org-roam-directory "/tex")))))
 	   nil
 	   match-p)))
 
@@ -936,7 +943,7 @@ PRIORITY may be one of the characters ?A, ?B, or ?C."
 		  match-p)))
     (if (equal option "Current file prefix") ; Give the option to go on layer deeper
 	(get-current-files-standalones-latex match-p current-prefix)
-	option)
+      option)
 ))
 
 (defun compile-standalone-latex (fname)
