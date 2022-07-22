@@ -296,6 +296,17 @@
 
 (add-hook 'kill-emacs-hook #'dump-closing-variables) ; Write on exit
 
+(defun unfill-region (beg end)
+  "Unfill the region, joining text paragraphs into a single
+    logical line.  This is useful, e.g., for use with
+    `visual-line-mode'."
+  (interactive "*r")
+  (let ((fill-column (point-max)))
+    (fill-region beg end)))
+
+;; Handy key definition
+(define-key global-map "\C-\M-Q" 'unfill-region)
+
   ;; Uses rainbow colors for matching parens etc
   (use-package rainbow-delimiters
     :defer t
@@ -507,6 +518,8 @@ PRIORITY may be one of the characters ?A, ?B, or ?C."
   (interactive)
   (org-agenda nil "d"))
 
+(setq org-clock-idle-time 10)
+
 (require 'ob-latex)
 (require 'ox-latex)
 
@@ -706,8 +719,8 @@ PRIORITY may be one of the characters ?A, ?B, or ?C."
           deft-recursive t
           deft-strip-summary-regexp ":PROPERTIES:\n\\(.+\n\\)+:END:\n"
           deft-use-filename-as-title t)
-    :bind
-    ("C-c n e" . deft)
+    ;:bind
+    ;("C-c n e" . deft)
     )
 
 (defun cm/deft-parse-title (file contents)
@@ -725,13 +738,25 @@ PRIORITY may be one of the characters ?A, ?B, or ?C."
     (setq deft-strip-summary-regexp
           (concat "\\("
                   "[\n\t]" ;; blank
-                  "\\|^#\\+[[:alpha:]_]+:.*$" ;; org-mode metadata
-                  "\\|^:PROPERTIES:\n\\(.+\n\\)+:END:\n"
+                  "\\|^#\\+[[:alpha:]_]+:.*$"            ;; Link ids
+                  "\\|^:PROPERTIES:\n\\(.+\n\\)+:END:\n" ;; org-mode metadata
                   "\\)"))
+
+(use-package notdeft
+    :straight
+    (:host github :repo "hasu/notdeft" :files ("*.el" "xapian"))
+    ;:bind ("C-c n e" . notdeft)
+    :config
+    (setq notdeft-directories (list org-roam-directory))
+    (add-hook 'notdeft-load-hook 'notdeft-xapian-make-program-when-uncurrent))
+
+(use-package deadgrep
+  :bind ("C-c n e" . deadgrep))
+
+(setq deadgrep-project-root-function (lambda () org-roam-directory))
 
   (defun org/project-p ()
     "Return non-nil if current buffer has any todo entry.
-
   TODO entries marked as done are ignored, meaning the this
   function returns nil if current buffer contains only completed
   tasks."
@@ -887,8 +912,15 @@ PRIORITY may be one of the characters ?A, ?B, or ?C."
 	))
 
 (setq cdlatex-math-modify-alist
-      '(( ?A    "\\abs"          nil        t   nil nil )
+      '(
+	(?A    "\\abs"          nil        t   nil nil )
+	(?t "\\text" nil t nil nil)
 	(?o "\\mathring" nil t nil nil)))
+
+(setq cdlatex-math-symbol-alist
+      '(
+	(?o ("\\omega" "\\circ"))
+	(?O ("\\Omega" "\\degree"))))
 
 (add-hook 'LaTeX-mode-hook #'turn-on-org-cdlatex)
 (add-hook 'org-mode-hook   #'turn-on-org-cdlatex)

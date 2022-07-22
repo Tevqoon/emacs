@@ -27,6 +27,7 @@
 \setcounter{MaxMatrixCols}{20}
 
 \usepackage{readarray}
+\usepackage{gensymb}
 
 %\usepackage{polyglossia}
 \usepackage{tikz}
@@ -45,6 +46,13 @@
 \providecommand{\F}{\mathbb{F}}
 \providecommand{\bH}{\mathbb{H}}
 \providecommand{\HH}{\mathbb{H}}
+\providecommand{\lt}{<}
+\providecommand{\gt}{>}
+\providecommand{\lint}{\int\limits}
+\providecommand{\liint}{\iint\limits}
+\providecommand{\liiint}{\iiint\limits}
+\providecommand{\lidotsint}{\idotsint\limits}
+\providecommand{\olint}{\oint\limits}
 
 \DeclareMathOperator{\id}{id}
 \DeclareMathOperator{\Sim}{Sim}
@@ -72,7 +80,11 @@
 \DeclareMathOperator{\gend}{End}
 \DeclareMathOperator{\meja}{Meja}
 \DeclareMathOperator{\Res}{Res}
-
+\let\Im\relax
+\DeclareMathOperator{\Im}{Im}
+\let\Re\relax
+\DeclareMathOperator{\Re}{Re}
+\DeclareMathOperator{\Hom}{Hom}
 
 
 

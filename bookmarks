@@ -18,10 +18,10 @@
  (rear-context-string . "680B][@Tasks]]\n\n")
  (position . 403))
 ("org-capture-last-stored"
- (filename . "~/Documents/org/20220522231130-addiction.org")
- (front-context-string . "#+filetags: :fla")
- (rear-context-string . "itle: Addiction\n")
- (position . 87))
+ (filename . "~/Documents/org/20220706204946-jane_street.org")
+ (front-context-string . "\nBig cash cow fi")
+ (rear-context-string . "le: Jane Street\n")
+ (position . 89))
 ("org-refile-last-stored"
  (filename . "~/Documents/org/20211117164414-inbox.org")
  (front-context-string . "** TODO Add bett")

@@ -1,0 +1,11 @@
+# -*- mode: snippet -*-
+# name: Anki Exercise
+# key: Ankie
+# --
+
+:PROPERTIES:
+:ANKI_NOTE_TYPE: Basic
+:ANKI_DECK: Exercises
+:ANKI_TAGS: ${1:default}
+:END:
+$0

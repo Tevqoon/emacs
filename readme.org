@@ -437,6 +437,21 @@ Functions to dump variables to a file. Includes a simple utility to make a varia
 
 #+end_src
 
+*** Unfill-region
+#+begin_src emacs-lisp
+
+(defun unfill-region (beg end)
+  "Unfill the region, joining text paragraphs into a single
+    logical line.  This is useful, e.g., for use with
+    `visual-line-mode'."
+  (interactive "*r")
+  (let ((fill-column (point-max)))
+    (fill-region beg end)))
+
+;; Handy key definition
+(define-key global-map "\C-\M-Q" 'unfill-region)
+
+#+end_src
 * General packages
 ** Rainbow delimiters
 #+begin_src emacs-lisp
@@ -714,6 +729,13 @@ PRIORITY may be one of the characters ?A, ?B, or ?C."
 
 #+end_src
 
+** Time tracking
+If inactive for 5 minutes, ask what to do with the time. On macOS it considers actual user idle time, not just emacs, so keeping it low.
+#+begin_src emacs-lisp
+
+(setq org-clock-idle-time 10)
+
+#+end_src
 ** Babel configuration
 
 *** Initialization
@@ -1048,8 +1070,8 @@ I only want to push if the file has changed on disk since last push. Hence we ne
           deft-recursive t
           deft-strip-summary-regexp ":PROPERTIES:\n\\(.+\n\\)+:END:\n"
           deft-use-filename-as-title t)
-    :bind
-    ("C-c n e" . deft)
+    ;:bind
+    ;("C-c n e" . deft)
     )
 
 (defun cm/deft-parse-title (file contents)
@@ -1067,12 +1089,37 @@ I only want to push if the file has changed on disk since last push. Hence we ne
     (setq deft-strip-summary-regexp
           (concat "\\("
                   "[\n\t]" ;; blank
-                  "\\|^#\\+[[:alpha:]_]+:.*$" ;; org-mode metadata
-                  "\\|^:PROPERTIES:\n\\(.+\n\\)+:END:\n"
+                  "\\|^#\\+[[:alpha:]_]+:.*$"            ;; Link ids
+                  "\\|^:PROPERTIES:\n\\(.+\n\\)+:END:\n" ;; org-mode metadata
                   "\\)"))
 
 
 #+end_src
+** Not deft
+Faster than Deft, still not that fast though, might as well keep it around though.
+#+begin_src emacs-lisp
+
+(use-package notdeft
+    :straight
+    (:host github :repo "hasu/notdeft" :files ("*.el" "xapian"))
+    ;:bind ("C-c n e" . notdeft)
+    :config
+    (setq notdeft-directories (list org-roam-directory))
+    (add-hook 'notdeft-load-hook 'notdeft-xapian-make-program-when-uncurrent))
+
+#+end_src
+
+** Ripgrep
+Now this shit is fast owo etc.
+#+begin_src emacs-lisp
+
+(use-package deadgrep
+  :bind ("C-c n e" . deadgrep))
+
+(setq deadgrep-project-root-function (lambda () org-roam-directory))
+
+#+end_src
+
 
 * Org Tag handler
 A generalized way to add and remove tags to org files easily.
@@ -1086,7 +1133,6 @@ Adapted from
   
   (defun org/project-p ()
     "Return non-nil if current buffer has any todo entry.
-
   TODO entries marked as done are ignored, meaning the this
   function returns nil if current buffer contains only completed
   tasks."
@@ -1188,7 +1234,6 @@ This one calls =org-update-tag= for all the pairs. This we can hook.
 
 ** Query		  
 *** Project
-
 #+begin_src emacs-lisp
 
   (defun org-project-files ()
@@ -1329,8 +1374,15 @@ Firstly, we must set a header for our org files to use.
 	))
 
 (setq cdlatex-math-modify-alist
-      '(( ?A    "\\abs"          nil        t   nil nil )
+      '(
+	(?A    "\\abs"          nil        t   nil nil )
+	(?t "\\text" nil t nil nil)
 	(?o "\\mathring" nil t nil nil)))
+
+(setq cdlatex-math-symbol-alist
+      '(
+	(?o ("\\omega" "\\circ"))
+	(?O ("\\Omega" "\\degree"))))
 
 (add-hook 'LaTeX-mode-hook #'turn-on-org-cdlatex)
 (add-hook 'org-mode-hook   #'turn-on-org-cdlatex)
