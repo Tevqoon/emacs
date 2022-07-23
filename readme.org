@@ -5,7 +5,7 @@
 This file is the code. Using =org-babel-tangle= it gets converted to an =init.el= file upon every save,
 as is documented later.
 
-Currently using Emacs-Plus 28 from [[https://github.com/d12frosted/homebrew-emacs-plus][here]] compiled with =--with-native-comp=, =--with-imagemagick= and =--with-xwidgets=. Compile time was cca 30min on 2.9Ghz 2017 MBP. Looking forward to testing on M1 Pro.
+Currently using Emacs-Plus 28 from [[https://github.com/d12frosted/homebrew-emacs-plus][here]] compiled with =--with-native-comp=, =--with-imagemagick= and =--with-xwidgets=. Compile time was cca 30min on 2.9Ghz 2017 MBP. Looking forward to testing on M1 Pro. Took about 10min on M1 Pro. Wew.
 
 * General configs
 ** Initialization
@@ -25,7 +25,7 @@ Currently using Emacs-Plus 28 from [[https://github.com/d12frosted/homebrew-emac
 
 (column-number-mode) ; Add column numbers to modeline
 
-;; (global-display-line-numbers-mode t) ; Add line numbers
+;; -display-line-numbers-mode t) ; Add line numbers
 ;; No line numbers for now fuck that
 
 ;;Disable line numbers for some modes
@@ -77,24 +77,6 @@ Currently using Emacs-Plus 28 from [[https://github.com/d12frosted/homebrew-emac
 (set-register ?t '(file . "~/Documents/org/tasks.org"))
 
 #+end_src
-** Padding etc
-
-#+begin_src emacs-lisp
-
-  (defun efs/org-mode-visual-fill ()
-    "Sets the width just so that there's a little bit
-     of space on the left and right."
-    (setq visual-fill-column-width 110
-          visual-fill-column-center-text t))
-
-  (efs/org-mode-visual-fill)
-  (global-visual-fill-column-mode 1)
-  ; Use it everywhere
-
-    (use-package visual-fill-column)
-
-  #+end_src
-
 ** Enabling disabled commands
 #+begin_src emacs-lisp
     (setq disabled-command-function nil)
@@ -132,11 +114,28 @@ We use =straight.el= due to greater power and flexibility, especially and/or spe
 
 *** early-init loading
 This disables the built-in package manager from loading.
-#+begin_src emacs-lisp :tangle no
+#+begin_src emacs-lisp
 
   (setq package-enable-at-startup nil)
 
 #+end_src
+
+** Padding etc
+#+begin_src emacs-lisp
+  (use-package visual-fill-column)
+
+  (defun efs/org-mode-visual-fill ()
+    "Sets the width just so that there's a little bit
+     of space on the left and right."
+    (setq visual-fill-column-width 110)
+    (setq visual-fill-column-center-text t)
+    )
+
+(global-visual-fill-column-mode 1)
+(add-hook 'visual-line-mode-hook 'efs/org-mode-visual-fill)
+
+
+  #+end_src
 
 ** Theme stuff
 #+begin_src emacs-lisp
@@ -445,7 +444,7 @@ Functions to dump variables to a file. Includes a simple utility to make a varia
     logical line.  This is useful, e.g., for use with
     `visual-line-mode'."
   (interactive "*r")
-  (let ((fill-column (point-max)))
+  (let ((fill-column p(point-max)))
     (fill-region beg end)))
 
 ;; Handy key definition
@@ -558,22 +557,16 @@ A better pdf reader for emacs, here specifically for use with org-noter
 
 #+begin_src emacs-lisp
 
-  (defun efs/org-mode-setup ()
-    (org-indent-mode)
-    (visual-line-mode 1))
+(defun efs/org-mode-setup ()
+  (org-indent-mode)
+  (visual-line-mode 1)
+  )
 
-  (use-package org
-    :hook (org-mode . efs/org-mode-setup)
-    :config
-    (setq org-ellipsis " ▾")
-    (setq org-hide-emphasis-markers t))
-
-  (use-package org-bullets
-    :after org
-    :hook (org-mode . org-bullets-mode)
-    :custom
-    (org-bullets-bullet-list '("◉" "○" "●" "○" "●" "○" "●")))
-
+(use-package org
+  :hook (org-mode . efs/org-mode-setup)
+  :config
+  (setq org-ellipsis " ▾")
+  (setq org-hide-emphasis-markers t))
 
 (setq org-image-actual-width nil)
 (setq org-startup-with-inline-images t)
@@ -582,7 +575,6 @@ A better pdf reader for emacs, here specifically for use with org-noter
 #+end_src
 
 ** Fonts
-
 Mostly from [[https://zzamboni.org/post/beautifying-org-mode-in-emacs/][here]]. 
 
 #+begin_src emacs-lisp
@@ -631,6 +623,18 @@ Mostly from [[https://zzamboni.org/post/beautifying-org-mode-in-emacs/][here]].
    '(org-verbatim ((t (:inherit (shadow fixed-pitch))))))
 
   (add-hook 'org-mode-hook 'variable-pitch-mode)
+
+#+end_src
+
+** Bullets
+#+begin_src emacs-lisp
+
+  (use-package org-bullets
+    :after org
+    :hook (org-mode . org-bullets-mode)
+    :custom
+    (org-bullets-bullet-list '("◉" "○" "●" "○" "●" "○" "●")))
+
 
  #+end_src
  

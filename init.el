@@ -13,7 +13,7 @@
 
 (column-number-mode) ; Add column numbers to modeline
 
-;; (global-display-line-numbers-mode t) ; Add line numbers
+;; -display-line-numbers-mode t) ; Add line numbers
 ;; No line numbers for now fuck that
 
 ;;Disable line numbers for some modes
@@ -59,18 +59,6 @@
 (set-register ?r '(file . "~/.emacs.d/readme.org"))
 (set-register ?t '(file . "~/Documents/org/tasks.org"))
 
-  (defun efs/org-mode-visual-fill ()
-    "Sets the width just so that there's a little bit
-     of space on the left and right."
-    (setq visual-fill-column-width 110
-          visual-fill-column-center-text t))
-
-  (efs/org-mode-visual-fill)
-  (global-visual-fill-column-mode 1)
-  ; Use it everywhere
-
-    (use-package visual-fill-column)
-
     (setq disabled-command-function nil)
 
   ;; Initialize package sources
@@ -95,6 +83,20 @@
 
     (use-package exec-path-from-shell)
       (exec-path-from-shell-initialize)
+
+  (setq package-enable-at-startup nil)
+
+  (use-package visual-fill-column)
+
+  (defun efs/org-mode-visual-fill ()
+    "Sets the width just so that there's a little bit
+     of space on the left and right."
+    (setq visual-fill-column-width 110)
+    (setq visual-fill-column-center-text t)
+    )
+
+(global-visual-fill-column-mode 1)
+(add-hook 'visual-line-mode-hook 'efs/org-mode-visual-fill)
 
   (use-package doom-themes
    :defer t
@@ -301,7 +303,7 @@
     logical line.  This is useful, e.g., for use with
     `visual-line-mode'."
   (interactive "*r")
-  (let ((fill-column (point-max)))
+  (let ((fill-column p(point-max)))
     (fill-region beg end)))
 
 ;; Handy key definition
@@ -369,22 +371,16 @@
 
   (winum-mode)
 
-  (defun efs/org-mode-setup ()
-    (org-indent-mode)
-    (visual-line-mode 1))
+(defun efs/org-mode-setup ()
+  (org-indent-mode)
+  (visual-line-mode 1)
+  )
 
-  (use-package org
-    :hook (org-mode . efs/org-mode-setup)
-    :config
-    (setq org-ellipsis " ▾")
-    (setq org-hide-emphasis-markers t))
-
-  (use-package org-bullets
-    :after org
-    :hook (org-mode . org-bullets-mode)
-    :custom
-    (org-bullets-bullet-list '("◉" "○" "●" "○" "●" "○" "●")))
-
+(use-package org
+  :hook (org-mode . efs/org-mode-setup)
+  :config
+  (setq org-ellipsis " ▾")
+  (setq org-hide-emphasis-markers t))
 
 (setq org-image-actual-width nil)
 (setq org-startup-with-inline-images t)
@@ -434,6 +430,12 @@
    '(org-verbatim ((t (:inherit (shadow fixed-pitch))))))
 
   (add-hook 'org-mode-hook 'variable-pitch-mode)
+
+  (use-package org-bullets
+    :after org
+    :hook (org-mode . org-bullets-mode)
+    :custom
+    (org-bullets-bullet-list '("◉" "○" "●" "○" "●" "○" "●")))
 
   (use-package org-pretty-table
     :straight
